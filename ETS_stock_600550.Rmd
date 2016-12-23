@@ -1,0 +1,970 @@
+---
+title: "ETS Prediction Of Stock 600550"
+author: "Wu Wei"
+date: "2016-12-12"
+output: html_document
+---
+
+## Synopsis
+
+ Index data of stock 600550 was analyzed using ETS model family and some benchmark method.  
+
+* Holt model for data begining from 2016-6 is better, which can be used as a prediction tool
+
+
+## Library input & Data Input
+```{r}
+suppressMessages(library(forecast))
+# suppressMessages(library(quantmod))
+# suppressMessages(library(TTR))
+
+setwd("d://MyR//stock//")
+original.data <- read.csv("600550.csv")
+# View(original.data)
+close.price <- as.ts(original.data[,5])
+
+training.set.start260 <- window(close.price, start = 260, end = 274)
+training.set.start235 <- window(close.price, start = 235, end = 274)
+test.set <- window(close.price, start = 275)
+
+```
+
+## Analysis for data between 2016-6 and 2016-9
+
+### Exploratory Data Analysis for data between 2016-6 and 2016-9
+```{r}
+# dev.off()
+par(mfrow = c(1,1))
+
+# plot(training.set.start260)
+plot(training.set.start260, 
+     ylim = c(min(training.set.start260) - 0.1, 
+              max(training.set.start260) + 0.1),
+     axes = FALSE, 
+     main = "stock index of 600550")
+axis(1, at = seq(tsp(training.set.start260)[1], tsp(training.set.start260)[2], 3), 
+     labels = original.data[seq(tsp(training.set.start260)[1], 
+                                tsp(training.set.start260)[2], 3), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(training.set.start260)[1], tsp(training.set.start260)[2], 3), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(round(min(training.set.start260) - 0.1, digits = 1), 
+              round(max(training.set.start260) + 0.1, digits = 1), 0.2), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+
+```
+
+It seems that there is trend pattern and no season pattern.
+
+### Modelling for data between 2016-6 and 2016-9
+
+```{r}
+### ETS Model
+fit.ets.start260 <- ets(training.set.start260)
+#summary(fit.ets.start260)
+
+### naive model
+fit.naive.start260 <- naive(training.set.start260, h = length(test.set), level = 60)
+# summary(fit.naive.start260)
+
+### ses model
+fit.ses.start260 <- ses(training.set.start260, h = length(test.set),  level = 60)
+# summary(fit.ses.start260)
+
+fit.holt.start260 <- holt(training.set.start260, h = length(test.set), level = 60)
+# summary(fit.meanf.start260)
+
+
+```
+
+### Model Comparison Of Training Set for data between 2016-6 and 2016-9
+
+#### Accuracy Of Training Set (for data between 2016-6 and 2016-9)
+
+```{r}
+df.training.set.start260 <- rbind(accuracy(fit.ets.start260),
+            accuracy(fit.naive.start260),
+            accuracy(fit.ses.start260),
+            accuracy(fit.holt.start260))
+
+row.names(df.training.set.start260) <- c("ets","naive","ses","holt")
+print(round(df.training.set.start260, 3))
+
+```
+Considering the accuracy of training set, holt model is the best. 
+
+#### Relationship Between Residuals And Time(for data between 2016-6 and 2016-9)
+
+```{r, fig.height=7, fig.width=10}
+# dev.off()
+par(mfrow = c(2,2))
+
+plot(residuals(fit.ets.start260), axes = FALSE, main = "ets")
+abline(h = 0, col = "red")
+axis(1, at = seq(tsp(training.set.start260)[1], tsp(training.set.start260)[2], 3), 
+     labels = original.data[seq(tsp(training.set.start260)[1], 
+                                tsp(training.set.start260)[2], 3), 1])
+axis(2)
+box()
+
+plot(residuals(fit.naive.start260), axes = FALSE, main = "naive")
+abline(h = 0, col = "red")
+axis(1, at = seq(tsp(training.set.start260)[1], tsp(training.set.start260)[2], 3), 
+     labels = original.data[seq(tsp(training.set.start260)[1], 
+                                tsp(training.set.start260)[2], 3), 1])
+axis(2)
+box()
+
+plot(residuals(fit.ses.start260), axes = FALSE, main = "ses")
+abline(h = 0, col = "red")
+axis(1, at = seq(tsp(training.set.start260)[1], tsp(training.set.start260)[2], 3), 
+     labels = original.data[seq(tsp(training.set.start260)[1], 
+                                tsp(training.set.start260)[2], 3), 1])
+axis(2)
+box()
+
+plot(residuals(fit.holt.start260), axes = FALSE, main = "holt")
+abline(h = 0, col = "red")
+axis(1, at = seq(tsp(training.set.start260)[1], tsp(training.set.start260)[2], 3), 
+     labels = original.data[seq(tsp(training.set.start260)[1], 
+                                tsp(training.set.start260)[2], 3), 1])
+axis(2)
+box()
+
+
+```
+
+There is no obvious relationship between residuals and time for 4 models. 
+The residuals have zero mean.
+
+#### Portmanteau tests for autocorrelation of residuals
+```{r}
+## Because the length of the training set is 15, so upppler limit of lag is 15 / 5
+
+Box.test(residuals(fit.ets.start260), lag=3, fitdf=1)
+Box.test(residuals(fit.ets.start260), lag=3, fitdf=1, type = "Lj")
+
+Box.test(residuals(fit.naive.start260), lag=3, fitdf=0)
+Box.test(residuals(fit.naive.start260), lag=3, fitdf=0, type = "Lj")
+
+Box.test(residuals(fit.ses.start260), lag=3, fitdf=1)
+Box.test(residuals(fit.ses.start260), lag=3, fitdf=1, type = "Lj")
+
+Box.test(residuals(fit.holt.start260), lag=3, fitdf=2)
+Box.test(residuals(fit.holt.start260), lag=3, fitdf=2, type = "Lj")
+
+```
+
+The holt model hardly pass the Portmanteau test.
+
+
+#### Relationship Between Residuals And Fitted Value(for data between 2016-6 and 2016-9)
+
+```{r, fig.height=7, fig.width=10}
+# dev.off()
+par(mfrow = c(2,2))
+
+plot(as.numeric(residuals(fit.ets.start260)) ~ as.numeric(fitted(fit.ets.start260)), 
+     main = "ets")
+abline(h = 0, col = "red")
+
+plot(as.numeric(residuals(fit.naive.start260)) ~ as.numeric(fitted(fit.naive.start260)), 
+     main = "naive")
+abline(h = 0, col = "red")
+
+plot(as.numeric(residuals(fit.ses.start260)) ~ as.numeric(fitted(fit.ses.start260)), 
+     main = "ses")
+abline(h = 0, col = "red")
+
+plot(as.numeric(residuals(fit.holt.start260)) ~ as.numeric(fitted(fit.holt.start260)), 
+     main = "holt")
+abline(h = 0, col = "red")
+
+
+```
+
+There is a little heteroscedasticity in 4 models.
+
+
+#### Normality of  Residuals(for data between 2016-6 and 2016-9)
+
+```{r, fig.height=7, fig.width=10}
+# dev.off()
+par(mfrow = c(2,2))
+
+qqnorm(residuals(fit.ets.start260), main = "ets")
+qqline(residuals(fit.ets.start260))
+
+qqnorm(as.numeric(residuals(fit.naive.start260)), main = "naive")
+qqline(residuals(fit.naive.start260))
+
+qqnorm(residuals(fit.ses.start260), main = "ses")
+qqline(residuals(fit.ses.start260))
+
+qqnorm(residuals(fit.holt.start260), main = "holt")
+qqline(residuals(fit.holt.start260))
+
+
+```
+
+Residuals of 4 models conform to normality.
+
+### Model Comparison Of Test Set for data between 2016-6 and 2016-9
+
+#### Accuracy Of Test Set (for data between 2016-6 and 2016-9)
+
+```{r}
+
+
+df.test.set.start260 <- rbind(accuracy(forecast(fit.ets.start260, 
+                                                h = length(test.set)), test.set)[2,],
+            accuracy(fit.naive.start260, test.set)[2,],
+            accuracy(fit.ses.start260, test.set)[2,],
+            accuracy(fit.holt.start260, test.set)[2,])
+
+row.names(df.test.set.start260) <- c("ets","naive","ses","holt")
+print(round(df.test.set.start260, 3))
+
+
+
+```
+
+Considering the accuracy of test set, holt model is the worst.
+
+#### Comparison between actual value and forecast result (for data between 2016-6 and 2016-9)
+
+```{r, fig.height=7, fig.width=10}
+fc.ets.start260 <- forecast(fit.ets.start260, h = length(test.set), level = 60)
+
+ylim.upper <- round(max(c(test.set,
+                    fc.ets.start260$upper, 
+                    fc.ets.start260$x,
+                    fit.naive.start260$upper,
+                    fit.ses.start260$upper,
+                    fit.holt.start260$upper)) + 0.1, digits = 1)
+
+ylim.lower <- round(min(c(test.set,
+                    fc.ets.start260$lower, 
+                    fc.ets.start260$x,
+                    fit.naive.start260$lower,
+                    fit.ses.start260$lower,
+                    fit.holt.start260$lower)) - 0.1, digits = 1)
+
+
+par(mfrow = c(2,2))
+
+###the 1st figure
+plot(fc.ets.start260, 
+     ylim = c(ylim.lower, ylim.upper),
+     type = "o", plot.conf = TRUE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE, main = "ets")
+lines(test.set, type = "o",col = "red")
+
+axis(1, at = seq(tsp(training.set.start260)[1], tsp(close.price)[2], 3), 
+     labels = original.data[seq(tsp(training.set.start260)[1], tsp(close.price)[2], 3), 1])
+axis(2, at = seq(ylim.lower, ylim.upper, 0.2),
+     labels = seq(ylim.lower, ylim.upper, 0.2))
+box()
+
+abline(v = seq(tsp(training.set.start260)[1], tsp(close.price)[2], 3), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower, ylim.upper, 0.2), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+
+###the 2nd figure
+plot(fit.naive.start260,  ylim = c(ylim.lower, ylim.upper),
+     type = "o", plot.conf = TRUE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE,   main = "naive")
+
+lines(test.set, type = "o",col = "red")
+
+axis(1, at = seq(tsp(training.set.start260)[1], tsp(close.price)[2], 3), 
+     labels = original.data[seq(tsp(training.set.start260)[1], 
+                                tsp(close.price)[2], 3), 1])
+axis(2, at = seq(ylim.lower, ylim.upper, 0.2),
+     labels = seq(ylim.lower, ylim.upper, 0.2))
+box()
+
+abline(v = seq(tsp(training.set.start260)[1], tsp(close.price)[2], 3), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower, ylim.upper, 0.2), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+
+###the 3rd figure
+plot(fit.ses.start260, ylim = c(ylim.lower, ylim.upper),
+     type = "o", plot.conf = TRUE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE,main = "ses")
+
+lines(test.set, type = "o",col = "red")
+
+axis(1, at = seq(tsp(training.set.start260)[1], tsp(close.price)[2], 3), 
+     labels = original.data[seq(tsp(training.set.start260)[1], 
+                                tsp(close.price)[2], 3), 1])
+axis(2, at = seq(ylim.lower, ylim.upper, 0.2),
+     labels = seq(ylim.lower, ylim.upper, 0.2))
+box()
+
+abline(v = seq(tsp(training.set.start260)[1], tsp(close.price)[2], 3), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower, ylim.upper, 0.2), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+
+###the 4th figure
+plot(fit.holt.start260, ylim = c(ylim.lower, ylim.upper),
+     type = "o", plot.conf = TRUE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE,  main = "holt")
+
+lines(test.set, type = "o",col = "red")
+
+axis(1, at = seq(tsp(training.set.start260)[1], tsp(close.price)[2], 3), 
+     labels = original.data[seq(tsp(training.set.start260)[1], 
+                                tsp(close.price)[2], 3), 1])
+axis(2, at = seq(ylim.lower, ylim.upper, 0.2),
+     labels = seq(ylim.lower, ylim.upper, 0.2))
+box()
+
+abline(v = seq(tsp(training.set.start260)[1], tsp(close.price)[2], 3), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower, ylim.upper, 0.2), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+
+```
+
+Comparing with actual value of test set, forecast result of ETS model is reasonable.
+
+
+
+## Analysis for data between 2015-12 and 2016-9
+
+### Exploratory Data Analysis for data between 2015-12 and 2016-9
+```{r}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(training.set.start235, axes = FALSE, main = "stock index of 600550")
+
+axis(1, at = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.start235)[1], 
+                                tsp(close.price)[2], 5), 1])
+
+axis(2, at = seq(round(min(training.set.start235) - 0.1, digits = 1), 
+               round(max(training.set.start235) + 0.1, digits = 1), 0.2),
+     labels = seq(round(min(training.set.start235) - 0.1, digits = 1), 
+               round(max(training.set.start235) + 0.1, digits = 1), 0.2))
+box()
+
+abline(v = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(round(min(training.set.start235) - 0.1, digits = 1), 
+               round(max(training.set.start235) + 0.1, digits = 1), 0.2), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+
+```
+
+It seems that there is no season pattern, but we can assume there is trend pattern.
+
+### Modelling for data between 2015-12 and 2016-9
+
+```{r}
+### ETS Model
+fit.ets.start235 <- ets(training.set.start235)
+
+
+### naive model
+fit.naive.start235 <- naive(training.set.start235, h = length(test.set), level = 60)
+
+BoxCox.lambda(training.set.start235)
+# 
+# par(mfrow = c(1,2))
+# plot(training.set.start235)
+# plot(BoxCox(training.set.start235, -1))
+
+
+fit.ses.ets.start235 <- ets(training.set.start235, model = "ANN", lambda = -1)
+##forecast(fit.ses.ets, level = 60)
+
+##accuracy(fit.ses.ets)
+
+fit.holt.start235 <- holt(training.set.start235, level = 60, h = length(test.set), 
+                          damped = TRUE)
+
+
+```
+
+### Model Comparison Of Training Set for data between 2015-12 and 2016-9
+
+#### Accuracy Of Training Set (for data between 2015-12 and 2016-9)
+
+```{r}
+df.training.set.start235 <- rbind(accuracy(fit.ets.start235),
+            accuracy(fit.naive.start235),
+            accuracy(fit.ses.ets.start235),
+            accuracy(fit.holt.start235))
+
+row.names(df.training.set.start235) <- c("ets","naive","ses","holt")
+
+print(round(df.training.set.start235, 3))
+
+```
+Considering the accuracy of training set, holt model is superior to other models in ACF1 and RMSE. 
+
+#### Relationship Between Residuals And Time(for data between 2015-12 and 2016-9)
+
+```{r, fig.height=7, fig.width=10}
+# dev.off()
+par(mfrow = c(2,2))
+
+plot(residuals(fit.ets.start235), axes = FALSE, main = "ets")
+abline(h = 0, col = "red")
+axis(1, at = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.start235)[1], 
+                                tsp(close.price)[2], 5), 1])
+axis(2)
+box()
+
+plot(residuals(fit.naive.start235), axes = FALSE, main = "naive")
+abline(h = 0, col = "red")
+axis(1, at = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.start235)[1], 
+                                tsp(close.price)[2], 5), 1])
+axis(2)
+box()
+
+plot(residuals(fit.ses.ets.start235), axes = FALSE, main = "ses")
+abline(h = 0, col = "red")
+axis(1, at = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.start235)[1], 
+                                tsp(close.price)[2], 5), 1])
+axis(2)
+box()
+
+plot(residuals(fit.holt.start235), axes = FALSE, main = "holt")
+abline(h = 0, col = "red")
+axis(1, at = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.start235)[1], 
+                                tsp(close.price)[2], 5), 1])
+axis(2)
+box()
+
+
+```
+
+There is no obvious relationship between residuals and time for 4 models. 
+The residuals have zero mean.
+ETS performs the best because the residual distribution range is the lowest in the scale.
+
+#### Portmanteau tests for autocorrelation of residuals
+```{r}
+Box.test(residuals(fit.ets.start235), lag=8, fitdf=1)
+Box.test(residuals(fit.ets.start235), lag=8, fitdf=1, type = "Lj")
+
+Box.test(residuals(fit.naive.start235), lag=8, fitdf=0)
+Box.test(residuals(fit.naive.start235), lag=8, fitdf=0, type = "Lj")
+
+Box.test(residuals(fit.ses.ets.start235), lag=8, fitdf=1)
+Box.test(residuals(fit.ses.ets.start235), lag=8, fitdf=1, type = "Lj")
+
+Box.test(residuals(fit.holt.start235), lag=8, fitdf=3)
+Box.test(residuals(fit.holt.start235), lag=8, fitdf=3, type = "Lj")
+
+
+```
+
+All models pass the Portmanteau test.
+
+
+#### Relationship Between Residuals And Fitted Value(for data between 2015-12 and 2016-9)
+
+```{r, fig.height=7, fig.width=10}
+# dev.off()
+par(mfrow = c(2,2))
+
+plot(as.numeric(residuals(fit.ets.start235)) ~ as.numeric(fitted(fit.ets.start235)), 
+     main = "ets")
+abline(h = 0, col = "red")
+
+plot(as.numeric(residuals(fit.naive.start235)) ~ as.numeric(fitted(fit.naive.start235)), 
+     main = "naive")
+abline(h = 0, col = "red")
+
+plot(as.numeric(residuals(fit.ses.ets.start235)) ~ as.numeric(fitted(fit.ses.ets.start235)), 
+     main = "ses")
+abline(h = 0, col = "red")
+
+plot(as.numeric(residuals(fit.holt.start235)) ~ as.numeric(fitted(fit.holt.start235)), 
+     main = "holt")
+abline(h = 0, col = "red")
+
+
+```
+
+There is a little heteroscedasticity in 4 models. SES seems the best.
+
+#### Normality of  Residuals(for data between 2015-12 and 2016-9)
+
+```{r, fig.height=7, fig.width=10}
+# dev.off()
+par(mfrow = c(2,2))
+
+qqnorm(residuals(fit.ets.start235), main = "ets")
+qqline(residuals(fit.ets.start235))
+
+qqnorm(as.numeric(residuals(fit.naive.start235)), main = "naive")
+qqline(residuals(fit.naive.start235))
+
+qqnorm(residuals(fit.ses.ets.start235), main = "ses")
+qqline(residuals(fit.ses.ets.start235))
+
+qqnorm(residuals(fit.holt.start235), main = "holt")
+qqline(residuals(fit.holt.start235))
+
+
+```
+
+Residuals of 4 models almost conform to normality, but their tails should be noticed.
+
+
+### Model Comparison Of Test Set for data between 2015-12 and 2016-9
+
+#### Accuracy Of Test Set (for data between 2015-12 and 2016-9)
+
+```{r}
+
+df.test.set.start235 <- rbind(accuracy(forecast(fit.ets.start235, h = length(test.set)), test.set)[2,],
+            accuracy(fit.naive.start235, test.set)[2,],
+            accuracy(forecast(fit.ses.ets.start235, h = length(test.set)), test.set)[2,],
+            accuracy(fit.holt.start235, test.set)[2,])
+
+row.names(df.test.set.start235) <- c("ets","naive","ses","holt")
+print(round(df.test.set.start235, 3))
+
+```
+
+Considering the accuracy of test set, ETS, naive and ses are almost same. Although holt model performs the best in the training set, but it perform the worst in the test set. It seems over-fitting occurs.
+
+#### Comparison between actual value and forecast result (for data between 2015-12 and 2016-9)
+
+```{r, fig.height=10, fig.width=14}
+# dev.off()
+par(mfrow = c(2,2))
+
+fc.ets.start235 <- forecast(fit.ets.start235, h = length(test.set), level = 60)
+fc.ses.start235 <- forecast(fit.ses.ets.start235, h = length(test.set), level = 60)
+
+ylim.upper <- round(max(c(test.set,
+                    fc.ets.start235$upper, 
+                    fc.ets.start235$x,
+                    fit.naive.start235$upper,
+                    fc.ses.start235$upper,
+                    fit.holt.start235$upper)) + 0.1, digits = 1)
+
+ylim.lower <- round(min(c(test.set,
+                    fc.ets.start235$lower, 
+                    fc.ets.start235$x,
+                    fit.naive.start235$lower,
+                    fc.ses.start235$lower,
+                    fit.holt.start235$lower)) - 0.1, digits = 1)
+
+
+###the 1st figure
+plot(fc.ets.start235, ylim = c(ylim.lower, ylim.upper),
+     type = "o", plot.conf = TRUE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE, main = "ets")
+lines(test.set, type = "o", col = "red")
+
+axis(1, at = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.start235)[1], 
+                                tsp(close.price)[2], 5), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower, ylim.upper, 0.2), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+###the 2nd figure
+plot(fit.naive.start235,  ylim = c(ylim.lower, ylim.upper),
+     type = "o", plot.conf = TRUE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE,   main = "naive")
+
+lines(test.set, type = "o", col = "red")
+
+axis(1, at = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.start235)[1], 
+                                tsp(close.price)[2], 5), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower, ylim.upper, 0.2), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+###the 3rd figure
+
+plot(fc.ses.start235, ylim = c(ylim.lower, ylim.upper),
+     type = "o", plot.conf = TRUE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE, main = "ses")
+lines(test.set, type = "o", col = "red")
+
+axis(1, at = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.start235)[1], 
+                                tsp(close.price)[2], 5), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower, ylim.upper, 0.2), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+###the 4th figure
+plot(fit.holt.start235, ylim = c(ylim.lower, ylim.upper),
+     type = "o", plot.conf = TRUE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE,  main = "holt")
+
+lines(test.set, type = "o", col = "red")
+
+axis(1, at = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.start235)[1], 
+                                tsp(close.price)[2], 5), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower, ylim.upper, 0.2), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+```
+
+Forecast of ETS model is reasonable.
+
+## Comparison between ETS model for data between 2016-6 and 2016-9 and SES model for data between 2015-12 and 2016-9
+
+
+### Relationship Between Residuals And Fitted Value
+
+```{r, fig.height=4, fig.width=10}
+# dev.off()
+par(mfrow = c(1,2))
+
+plot(as.numeric(residuals(fit.ets.start260)) ~ as.numeric(fitted(fit.ets.start260)), 
+     main = "ETS model for data between 2016-6 and 2016-9")
+abline(h = 0, col = "red")
+
+plot(as.numeric(residuals(fit.ses.ets.start235)) ~ as.numeric(fitted(fit.ses.ets.start235)), 
+     main = "SES model for data between 2015-12 and 2016-9")
+abline(h = 0, col = "red")
+
+```
+
+
+### Normality of  Residuals
+
+```{r, fig.height=4, fig.width=10}
+# dev.off()
+par(mfrow = c(1,2))
+
+qqnorm(residuals(fit.ets.start260), main = "ETS model for data between 2016-6 and 2016-9")
+qqline(residuals(fit.ets.start260))
+
+qqnorm(residuals(fit.ses.ets.start235), main = "SES model for data between 2015-12 and 2016-9")
+qqline(residuals(fit.ses.ets.start235))
+
+```
+
+ETS model for data begining from 2016-6 is better.
+
+### Accuracy Of Test Set
+
+```{r}
+df.test.set.comparison <- rbind(accuracy(fc.ets.start260, test.set)[2,],
+            accuracy(fc.ses.start235, test.set)[2,])
+
+row.names(df.test.set.comparison) <- c("ETS model from 2016-6", "SES model from 2015-12")
+
+print(round(df.test.set.comparison, 3))
+
+
+```
+
+#### Comparison between actual value and forecast result (for data between 2015-12 and 2016-9)
+
+```{r, fig.height=4, fig.width=10}
+# dev.off()
+par(mfrow = c(1,2))
+
+ylim.upper.comparison <- max(c(fc.ets.start260$upper, 
+                    fc.ets.start260$x,
+                    test.set,
+                    fit.ses.ets.start235$upper,
+                    fit.ses.ets.start235$x)) + 0.25
+
+ylim.lower.comparison <- min(c(fc.ets.start260$lower, 
+                    fc.ets.start260$x,
+                    test.set,
+                    fit.ses.ets.start235$lower,
+                    fit.ses.ets.start235$x)) - 0.25
+
+
+
+plot(fc.ets.start260, 
+     ylim = c(ylim.lower.comparison, ylim.upper.comparison),
+     type = "o", plot.conf = TRUE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE, main = "ETS model for data between 2016-6 and 2016-9")
+lines(test.set, type = "o", col = "red")
+
+axis(1, at = seq(tsp(close.price)[1], tsp(close.price)[2], 3), 
+     labels = original.data[seq(tsp(close.price)[1], tsp(close.price)[2], 3), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(close.price)[1], tsp(close.price)[2], 3), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower.comparison, ylim.upper.comparison, 0.25), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+
+
+###"SES model for data between 2015-12 and 2016-9"
+plot(forecast(fit.ses.ets.start235, h = length(test.set), level = 60), 
+     ylim = c(ylim.lower.comparison, ylim.upper.comparison),
+     type = "o", plot.conf = TRUE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE, main = "SES model for data between 2015-12 and 2016-9")
+lines(test.set, type = "o", col = "red")
+axis(1, at = seq(234, 280, 5), labels = original.data[seq(234, 280, 5), 1])
+axis(2)
+box()
+
+abline(v = seq(234, 280, 5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower.comparison, ylim.upper.comparison, 0.25), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+```
+
+SES model for data begining from 2015-12 is better because its prediction interval include more actual values.
+
+## Conclusion
+
+* Holt model for data begining from 2016-6 is better, which can be used as a prediction tool
+
+## Review of the prediction of the last 5 weeks
+```{r}
+review.length <- 5
+
+refined.training.set <- 
+        window(close.price, start = 260, end = length(close.price) - review.length)
+
+refined.test.set <- window(close.price, start = length(close.price) - review.length + 1)
+
+refined.fit.holt.last5weeks <- holt(refined.training.set, 
+                          h = review.length,  
+                          level = c(80,95))
+
+
+summary(refined.fit.holt.last5weeks)
+
+ylim.upper.last5weeks <- max(c(refined.fit.holt.last5weeks$upper, 
+                              refined.fit.holt.last5weeks$x,
+                              refined.test.set)) + 0.25
+
+ylim.lower.last5weeks <- min(c(refined.fit.holt.last5weeks$lower, 
+                              refined.fit.holt.last5weeks$x,
+                              refined.test.set)) - 0.25
+
+
+plot(refined.fit.holt.last5weeks,
+     ylim = c(ylim.lower.last5weeks, ylim.upper.last5weeks),
+     type = "o", plot.conf = TRUE, shaded = TRUE, 
+     pi.col = "red", fcol = "red",
+     axes = FALSE, main = "Forecast for the last 5 weeks using Holt model")
+
+lines(window(close.price, start = tsp(refined.training.set)[1]), 
+      type = "o")
+
+lines(fitted(refined.fit.holt.last5weeks), type = "o", col = "red")
+
+axis(1, at = seq(tsp(refined.training.set)[1], length(close.price), 3), 
+     labels = original.data[seq(tsp(refined.training.set)[1], length(close.price), 3), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(refined.training.set)[1], length(close.price), 3),
+       col = "springgreen4",
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower.last5weeks, ylim.upper.last5weeks, 0.25),
+       col = "springgreen4",
+       lty = "dotted",
+       lwd = par("lwd"))
+
+
+```
+
+The actual values of the last 5 weeks are in the 60% prediction interval. 
+
+## Review of the prediction of the last week
+```{r,fig.height=7, fig.width=10}
+
+refined.dataset.last.week <- window(close.price, start = 260, end = length(close.price) - 1)
+
+refined.fit.holt.last.week <- holt(refined.dataset.last.week,h = 1, level = c(80,95)) 
+                                        
+ylim.upper.last.week <- max(c(refined.fit.holt.last.week$upper, 
+                              refined.fit.holt.last.week$x)) + 0.25
+
+ylim.lower.last.week <- min(c(refined.fit.holt.last.week$lower, 
+                              refined.fit.holt.last.week$x)) - 0.25
+
+
+plot(refined.fit.holt.last.week,
+     ylim = c(ylim.lower.last.week, ylim.upper.last.week),
+     type = "o", plot.conf = TRUE, shaded = TRUE, 
+     pi.col = "red", fcol = "red",
+     axes = FALSE, main = "Forecast for the last week using Holt model")
+
+lines(window(close.price, start = tsp(refined.dataset.last.week)[1]), 
+      type = "o")
+
+lines(fitted(refined.fit.holt.last.week), type = "o", col = "red")
+
+axis(1, at = seq(tsp(refined.dataset.last.week)[1], 
+                 length(close.price), 3), 
+     labels = original.data[seq(tsp(refined.dataset.last.week)[1], 
+                                length(close.price), 3), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(refined.dataset.last.week)[1], length(close.price), 3),
+       col = "springgreen4",
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower.last.week, ylim.upper.last.week, 0.25),
+       col = "springgreen4",
+       lty = "dotted",
+       lwd = par("lwd"))
+
+summary(refined.fit.holt.last.week)
+
+```
+
+The actual value of the last week is outside the 60% prediction interval and in the 80% prediction interval. 
+
+## Predict the index of next 3 weeks
+
+Before next prediction, training data and testing data are all used to refine the Holt model.
+
+```{r, fig.height=7, fig.width=10}
+prediction.length <- 3
+
+refined.fit.holt <- holt(window(close.price, start = 260), 
+                         h = prediction.length, level = 60)
+
+
+ylim.upper.next3weeks <- max(c(refined.fit.holt$upper, 
+                              refined.fit.holt$x)) + 0.25
+
+ylim.lower.next3weeks <- min(c(refined.fit.holt$lower, 
+                              refined.fit.holt$x)) - 0.25
+
+
+plot(refined.fit.holt, ylim = c(ylim.lower.next3weeks, ylim.upper.next3weeks),
+     type = "o", plot.conf = TRUE, shaded = FALSE, 
+     pi.col = "red", fcol = "red",
+     axes = FALSE, main = "Forecast for the next 3 weeks using holt model")
+
+lines(fitted(refined.fit.holt), type = "o", col = "red")
+
+axis(1, at = seq(tsp(refined.fit.holt$x)[1], length(close.price), 3), 
+     labels = original.data[seq(tsp(refined.fit.holt$x)[1], length(close.price), 3), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(refined.fit.holt$x)[1], length(close.price), 3),
+       col = "springgreen4",
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower.next3weeks, ylim.upper.next3weeks, 0.25),
+       col = "springgreen4",
+       lty = "dotted",
+       lwd = par("lwd"))
+
+summary(refined.fit.holt)
+
+```
+
+The 60% prediction interval of stock index of the next week is [XXX, XXX]. So the possibility of the event that stock index is larger than XXX is 80% and the possibility of the event that stock index is larger than XXX is 20%, which can be treated as one type of condition of buying and selling.  
+

@@ -1,0 +1,1457 @@
+---
+title: "ARIMA Prediction Of Stock 600550"
+author: "Wu Wei"
+date: "2015-12-13"
+output: html_document
+---
+
+## Synopsis
+
+ Index data of stock 600550 was analyzed using Arima model  
+
+* Arima model for data begining from 2015-12 is better, which can be used as a prediction tool right now
+
+
+## Library input & Data Input
+```{r}
+suppressMessages(library(forecast))
+
+setwd("d://MyR//stock//")
+original.data <- read.csv("600550.csv")
+# (original.data)
+close.price <- as.ts(original.data[,5])
+
+training.set.start260 <- window(close.price, start = 260, end = 274)
+test.set <- window(close.price, start = 275)
+
+training.set.start235 <- window(close.price, start = 235, end = 274)
+```
+
+## Analysis for data between 2016-6 and 2016-9
+
+### Exploratory Data Analysis for data between 2016-6 and 2016-9
+```{r}
+# dev.off()
+par(mfrow = c(1,1))
+
+# plot(training.set.start260)
+plot(training.set.start260, axes = FALSE, main = "stock index of 600550")
+axis(1, 
+     at = seq(tsp(training.set.start260)[1], tsp(training.set.start260)[2], 3), 
+     labels = original.data[seq(tsp(training.set.start260)[1], 
+                                tsp(training.set.start260)[2], 3), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(training.set.start260)[1], tsp(training.set.start260)[2], 3), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(min(training.set.start260) - 0.2, 
+               max(training.set.start260) + 0.2, 0.2), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+
+```
+
+It seems that there is no season pattern, but trend exists.
+
+### Modelling for data between 2016-6 and 2016-9
+
+```{r, fig.height=9, fig.width=10}
+
+tsdisplay(training.set.start260)
+```
+
+```{r, fig.height=7, fig.width=10}
+
+par(mfrow = c(2,1))
+plot(training.set.start260)
+plot(diff(training.set.start260))
+abline(h = 0, col = "red")
+```
+
+```{r, fig.height=7, fig.width=10}
+
+tsdisplay(diff(training.set.start260))
+```
+
+```{r}
+
+##nsdiffs(training.set.start260)
+ndiffs(training.set.start260)
+
+```
+
+```{r, fig.height=7, fig.width=10}
+
+(fit.010.start260 <- Arima(training.set.start260, order = c(0,1,0)))
+
+tsdisplay(residuals(fit.010.start260))
+```
+
+```{r}
+
+Box.test(residuals(fit.010.start260), lag=3, fitdf=0)
+Box.test(residuals(fit.010.start260), lag=3, fitdf=0, type = "Lj")
+
+```
+
+
+
+```{r}
+name.aicc <- c("Arima(training.set.start260, order = c(0,1,0))$aicc",
+               "Arima(training.set.start260, order = c(0,1,1))$aicc",
+               "Arima(training.set.start260, order = c(0,1,2))$aicc",
+               "Arima(training.set.start260, order = c(1,1,0))$aicc",
+               "Arima(training.set.start260, order = c(1,1,1))$aicc",
+               "Arima(training.set.start260, order = c(1,1,2))$aicc",
+               "Arima(training.set.start260, order = c(2,1,0))$aicc",
+               "Arima(training.set.start260, order = c(2,1,1))$aicc",
+               "Arima(training.set.start260, order = c(2,1,2))$aicc",
+               
+               "Arima(training.set.start260, order = c(0,1,0), include.drift = TRUE)$aicc",
+               "Arima(training.set.start260, order = c(0,1,1), include.drift = TRUE)$aicc",
+               "Arima(training.set.start260, order = c(0,1,2), include.drift = TRUE)$aicc",
+               "Arima(training.set.start260, order = c(1,1,0), include.drift = TRUE)$aicc",
+               "Arima(training.set.start260, order = c(1,1,1), include.drift = TRUE)$aicc",
+               "Arima(training.set.start260, order = c(1,1,2), include.drift = TRUE)$aicc",
+               "Arima(training.set.start260, order = c(2,1,0), include.drift = TRUE)$aicc",
+               "Arima(training.set.start260, order = c(2,1,1), include.drift = TRUE)$aicc",
+               "Arima(training.set.start260, order = c(2,1,2), include.drift = TRUE)$aicc"
+               
+)
+
+aicc <- unlist(lapply(lapply(name.aicc, parse, file = "", n = NULL), eval))
+
+name <-  substr(name.aicc, 1, nchar(name.aicc) - 5)
+
+df <- data.frame(name = sub("training.set","",name), 
+                 aicc = round(aicc, digits = 3))
+
+(df[order(df$aicc),])
+
+```
+
+Arima(0,1,0) is preferred.
+
+
+```{r}
+
+auto.arima(training.set.start260, stepwise = FALSE, approximation = FALSE)
+```
+
+Arima(0,1,0) is also selected by auto method.
+
+#### Relationship Between Residuals And Time(for data between 2016-6 and 2016-9)
+
+```{r}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(residuals(fit.010.start260), axes = FALSE, main = "Arima(0,1,0)")
+abline(h = 0, col = "red")
+axis(1, 
+     at = seq(tsp(training.set.start260)[1], tsp(training.set.start260)[2], 3), 
+     labels = original.data[seq(tsp(training.set.start260)[1], 
+                                tsp(training.set.start260)[2], 3), 1])
+axis(2)
+box()
+```
+
+#### Relationship Between Residuals And Fitted Value(for data between 2016-6 and 2016-9)
+
+```{r}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(as.numeric(residuals(fit.010.start260)) ~ as.numeric(fitted(fit.010.start260)), 
+     main = "Arima(0,1,0)")
+abline(h = 0, col = "red")
+
+
+
+```
+
+There is no obvious heteroscedasticity.
+
+
+#### Normality of  Residuals(for data between 2016-6 and 2016-9)
+
+```{r}
+# dev.off()
+par(mfrow = c(1,1))
+
+qqnorm(residuals(fit.010.start260), main = "Arima(0,1,0)")
+qqline(residuals(fit.010.start260))
+
+```
+
+Residuals conform to normality.
+
+#### Comparison between actual value and forecast result (for data between 2016-6 and 2016-9)
+
+```{r}
+# dev.off()
+
+par(mfrow = c(1,1))
+
+
+fc.arima.start260 <- forecast(fit.010.start260, h = length(test.set), level = 60)
+
+ylim.upper <- max(c(fc.arima.start260$upper, 
+                    fc.arima.start260$x)) + 0.2
+
+ylim.lower <- min(c(fc.arima.start260$lower, 
+                    fc.arima.start260$x)) - 0.2
+
+
+plot(fc.arima.start260, ylim = c(ylim.lower, ylim.upper),
+     type = "o", plot.conf = TRUE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE, main = "Arima(0,1,0)")
+lines(test.set, type = "o",col = "red")
+
+axis(1, at = seq(tsp(training.set.start260)[1], tsp(close.price)[2], 3), 
+     labels = original.data[seq(tsp(training.set.start260)[1], tsp(close.price)[2], 3), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(training.set.start260)[1], tsp(close.price)[2], 3), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower, ylim.upper, 0.2), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+
+```
+
+Comparing with actual value of test set, forecast result of Arima(0,1,0) model is reasonable.
+
+
+
+## Analysis for data between 2015-12 and 2016-9
+
+### Exploratory Data Analysis for data between 2015-12 and 2016-9
+```{r}
+# dev.off()
+par(mfrow = c(1,1))
+
+
+# plot(training.set.start260)
+plot(training.set.start235, axes = FALSE, main = "stock index of 600550")
+axis(1, at = seq(tsp(training.set.start235)[1], tsp(training.set.start235)[2], 5), 
+     labels = original.data[seq(tsp(training.set.start235)[1], tsp(training.set.start235)[2], 5), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(training.set.start235)[1], tsp(training.set.start235)[2], 5), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(min(training.set.start235) - 0.1, 
+               max(training.set.start235) + 0.1, 0.3), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+
+```
+
+
+### Modelling for data between 2015-12 and 2016-9
+
+```{r, fig.height=7, fig.width=10}
+tsdisplay(training.set.start235)
+```
+
+```{r, fig.height=7, fig.width=10}
+par(mfrow = c(2,1))
+plot(training.set.start235)
+plot(diff(training.set.start235))
+abline(h = 0, col = "red")
+```
+
+```{r, fig.height=7, fig.width=10}
+tsdisplay(diff(training.set.start235))
+```
+
+```{r}
+##nsdiffs(training.set.start235)
+ndiffs(training.set.start235)
+
+```
+
+
+
+```{r, fig.height=7, fig.width=10}
+
+(fit.010.start235 <- Arima(training.set.start235, order = c(0,1,0)))
+
+tsdisplay(residuals(fit.010.start235))
+```
+
+
+
+```{r, fig.height=7, fig.width=10}
+
+Box.test(residuals(fit.010.start235), lag=8, fitdf=0)
+Box.test(residuals(fit.010.start235), lag=8, fitdf=0, type = "Lj")
+
+```
+
+
+
+```{r}
+name.aicc <- c("Arima(training.set.start235, order = c(0,1,0))$aicc",
+               "Arima(training.set.start235, order = c(0,1,1))$aicc",
+               "Arima(training.set.start235, order = c(0,1,2))$aicc",
+               
+               "Arima(training.set.start235, order = c(1,1,0))$aicc",
+               "Arima(training.set.start235, order = c(1,1,1))$aicc",
+               "Arima(training.set.start235, order = c(1,1,2))$aicc",
+               
+               "Arima(training.set.start235, order = c(2,1,0))$aicc",
+               "Arima(training.set.start235, order = c(2,1,1))$aicc",
+               "Arima(training.set.start235, order = c(2,1,2))$aicc",
+               
+               "Arima(training.set.start235, order = c(0,1,0), include.drift = TRUE)$aicc",
+               "Arima(training.set.start235, order = c(0,1,1), include.drift = TRUE)$aicc",
+               "Arima(training.set.start235, order = c(0,1,2), include.drift = TRUE)$aicc",
+               
+               "Arima(training.set.start235, order = c(1,1,0), include.drift = TRUE)$aicc",
+               "Arima(training.set.start235, order = c(1,1,1), include.drift = TRUE)$aicc",
+               "Arima(training.set.start235, order = c(1,1,2), include.drift = TRUE)$aicc",
+               
+               "Arima(training.set.start235, order = c(2,1,0), include.drift = TRUE)$aicc",
+               "Arima(training.set.start235, order = c(2,1,1), include.drift = TRUE)$aicc",
+               "Arima(training.set.start235, order = c(2,1,2), include.drift = TRUE)$aicc"
+               
+)
+
+aicc <- unlist(lapply(lapply(name.aicc, parse, file = "", n = NULL), eval))
+
+name <-  substr(name.aicc, 1, nchar(name.aicc) - 5)
+
+df <- data.frame(name = sub("training.set","",name), 
+                 aicc = round(aicc, digits = 3))
+
+(df[order(df$aicc),])
+
+```
+
+Arima(0,1,1) is preferred.
+
+
+```{r}
+
+auto.arima(training.set.start235,  stepwise = FALSE, approximation = FALSE)
+
+```
+
+Arima(0,1,1) is also selected by auto method.
+
+```{r, fig.height=7, fig.width=10}
+
+(fit.011.start235 <- Arima(training.set.start235, order = c(0,1,1)))
+
+tsdisplay(residuals(fit.011.start235))
+```
+
+
+```{r, fig.height=7, fig.width=10}
+
+Box.test(residuals(fit.011.start235), lag=8, fitdf=1)
+Box.test(residuals(fit.011.start235), lag=8, fitdf=1, type = "Lj")
+
+```
+
+
+#### Relationship Between Residuals And Time(for data between 2015-12 and 2016-9)
+
+```{r}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(residuals(fit.011.start235), axes = FALSE, main = "Arima(0,1,1)")
+abline(h = 0, col = "red")
+axis(1, 
+     at = seq(tsp(training.set.start235)[1], tsp(training.set.start235)[2], 5), 
+     labels = original.data[seq(tsp(training.set.start235)[1], 
+                                tsp(training.set.start235)[2], 5), 1])
+axis(2)
+box()
+```
+
+#### Relationship Between Residuals And Fitted Value(for data between 2015-12 and 2016-9)
+
+```{r}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(as.numeric(residuals(fit.011.start235)) ~ as.numeric(fitted(fit.011.start235)), 
+     main = "Arima(0,1,1)")
+abline(h = 0, col = "red")
+
+
+
+```
+
+There is no obvious heteroscedasticity.
+
+
+#### Normality of  Residuals(for data between 2015-12 and 2016-9)
+
+```{r}
+# dev.off()
+par(mfrow = c(1,1))
+
+qqnorm(residuals(fit.011.start235), main = "Arima(0,1,1)")
+qqline(residuals(fit.011.start235))
+
+```
+
+
+#### Comparison between actual value and forecast result (for data between 2015-12 and 2016-9)
+
+```{r}
+# dev.off()
+
+par(mfrow = c(1,1))
+
+
+fc.arima.start235 <- forecast(fit.011.start235, h = length(test.set), level = 60)
+
+ylim.upper <- max(c(fc.arima.start235$upper, 
+                    fc.arima.start235$x)) + 0.1
+
+ylim.lower <- min(c(fc.arima.start235$lower, 
+                    fc.arima.start235$x)) - 0.1
+
+plot(fc.arima.start235, ylim = c(ylim.lower, ylim.upper),
+     type = "o", plot.conf = TRUE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE, main = "Arima(0,1,1)")
+lines(test.set, type = "o",col = "red")
+
+axis(1, at = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(training.set.start235)[1], tsp(close.price)[2], 5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower, ylim.upper, 0.3), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+
+```
+
+Comparing with actual value of test set, forecast result of Arima(0,1,1) model is reasonable for a long time.
+
+
+## Comparison between Arima(0,1,0) model (for data between 2016-6 and 2016-9) and Arima(0,1,1) model (for data between 2015-12 and 2016-9) and Holt model (for data between 2016-6 and 2016-9)
+
+### Accuracy Of Training Set
+
+```{r}
+fit.holt.start260 <- holt(training.set.start260, 
+                          h = length(test.set),  
+                          level = 60)
+
+df.training.set.comparison <- rbind(accuracy(fit.010.start260),
+            accuracy(fit.011.start235),
+            accuracy(fit.holt.start260))
+
+row.names(df.training.set.comparison) <- c("Arima(0,1,0) 2016-6", 
+                                           "Arima(0,1,1) 2015-12",
+                                           "Holt model 2016-6")
+print(round(df.training.set.comparison, 3))
+
+
+```
+
+Holt model for data begining from 2016-6 is better.
+
+### White noise test
+
+```{r}
+
+Box.test(residuals(fit.010.start260), lag=3, fitdf=0)
+Box.test(residuals(fit.010.start260), lag=3, fitdf=0, type = "Lj")
+
+Box.test(residuals(fit.011.start235), lag=8, fitdf=1)
+Box.test(residuals(fit.011.start235), lag=8, fitdf=1, type = "Lj")
+
+Box.test(residuals(fit.holt.start260), lag=3, fitdf=2)
+Box.test(residuals(fit.holt.start260), lag=3, fitdf=2, type = "Lj")
+```
+
+
+### Relationship Between Residuals And Fitted Value
+
+```{r, fig.height=7, fig.width=14}
+# dev.off()
+par(mfrow = c(1,3))
+
+plot(as.numeric(residuals(fit.010.start260)) ~ as.numeric(fitted(fit.010.start260)), 
+     main = "Arima(0,1,0) model for data between 2016-6 and 2016-9")
+abline(h = 0, col = "red")
+
+plot(as.numeric(residuals(fit.011.start235)) ~ as.numeric(fitted(fit.011.start235)), 
+     main = "Arima(0,1,1) model for data between 2015-12 and 2016-9")
+abline(h = 0, col = "red")
+
+plot(as.numeric(residuals(fit.holt.start260)) ~ as.numeric(fitted(fit.holt.start260)), 
+     main = "Holt model for data between 2016-6 and 2016-9")
+abline(h = 0, col = "red")
+
+```
+
+
+### Normality of  Residuals
+
+```{r, fig.height=7, fig.width=14}
+# dev.off()
+par(mfrow = c(1,3))
+
+qqnorm(residuals(fit.010.start260), main = "Arima(0,1,0) model for data between 2016-6 and 2016-9")
+qqline(residuals(fit.010.start260))
+
+qqnorm(residuals(fit.011.start235), main = "Arima(0,1,1) model for data between 2015-12 and 2016-9")
+qqline(residuals(fit.011.start235))
+
+qqnorm(residuals(fit.holt.start260), main = "Holt model for data between 2016-6 and 2016-9")
+qqline(residuals(fit.holt.start260))
+
+```
+
+
+
+### Accuracy Of Test Set
+
+```{r}
+df.test.set.comparison <- rbind(
+        accuracy(forecast(fit.010.start260, h = length(test.set)), test.set)[2,],
+        accuracy(forecast(fit.011.start235, h = length(test.set)), test.set)[2,],
+        accuracy(forecast(fit.holt.start260, h = length(test.set)), test.set)[2,])
+
+row.names(df.test.set.comparison) <- c("Arima(0,1,0) 2016-6", 
+                                       "Arima(0,1,1) 2015-12",
+                                       "Holt model 2016-6")
+print(round(df.test.set.comparison, 3))
+
+
+```
+
+Holt model from 2016-6 is better.
+
+#### Comparison between actual value and forecast result (for data between 2015-12 and 2016-9)
+
+```{r, fig.height=7, fig.width=14}
+# dev.off()
+
+ylim.upper.comparison <- max(c(fc.arima.start235$upper, 
+                    fc.arima.start235$x,
+                    fc.arima.start260$upper,
+                    fit.holt.start260$upper)) + 0.1
+
+ylim.lower.comparison <- min(c(fc.arima.start235$lower, 
+                    fc.arima.start235$x,
+                    fc.arima.start260$lower,
+                    fit.holt.start260$lower)) - 0.1
+
+
+par(mfrow = c(1,3))
+
+
+plot(fc.arima.start260, 
+     ylim = c(ylim.lower.comparison, ylim.upper.comparison),
+     type = "o", plot.conf = TRUE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE, main = "Arima(0,1,0) model for data between 2016-6 and 2016-9")
+lines(test.set, col = "red")
+
+axis(1, at = seq(tsp(training.set.start260)[1], length(close.price), 5), 
+     labels = FALSE)
+
+text(seq(tsp(training.set.start260)[1], length(close.price), 5), 
+     par("usr")[3] - 0.1, 
+     labels = original.data[seq(tsp(training.set.start260)[1], length(close.price), 5), 1], 
+     srt = 45, 
+     pos = 1, 
+     xpd = TRUE)
+
+axis(2)
+box()
+
+abline(v = seq(tsp(training.set.start260)[1], length(close.price), 5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower.comparison, ylim.upper.comparison, 0.5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+
+
+###"Arima(0,1,1) model for data between 2015-12 and 2016-9"
+plot(fc.arima.start235, 
+     ylim = c(ylim.lower.comparison, ylim.upper.comparison),
+     type = "o", plot.conf = TRUE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE, main = "Arima(0,1,1) model for data between 2015-12 and 2016-9")
+lines(test.set, col = "red")
+axis(1, at = seq(tsp(training.set.start235)[1], length(close.price), 5), 
+     labels = FALSE)
+
+text(seq(tsp(training.set.start235)[1], length(close.price), 5), 
+     par("usr")[3] - 0.1, 
+     labels = original.data[seq(tsp(training.set.start235)[1], length(close.price), 5), 1], 
+     srt = 45, 
+     pos = 1, 
+     xpd = TRUE)
+
+
+axis(2)
+box()
+
+abline(v = seq(tsp(training.set.start235)[1], length(close.price), 5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower.comparison, ylim.upper.comparison, 0.5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+###"Holt model for data between 2016-6 and 2016-9"
+
+plot(fit.holt.start260, 
+     ylim = c(ylim.lower.comparison, ylim.upper.comparison),
+     type = "o", plot.conf = TRUE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE, main = "Holt model for data between 2016-6 and 2016-9")
+lines(test.set, col = "red")
+
+axis(1, at = seq(tsp(training.set.start260)[1], length(close.price), 5), 
+     labels = FALSE)
+
+text(seq(tsp(training.set.start260)[1], length(close.price), 5), 
+     par("usr")[3] - 0.1, 
+     labels = original.data[seq(tsp(training.set.start260)[1], length(close.price), 5), 1], 
+     srt = 45, 
+     pos = 1, 
+     xpd = TRUE)
+
+axis(2)
+box()
+
+abline(v = seq(tsp(training.set.start260)[1], length(close.price), 5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower.comparison, ylim.upper.comparison, 0.5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+
+```
+
+Holt model for data begining from 2016-6 is better .
+
+## Conclusion
+
+* Arima(0,1,0) model for data begining from 2016-6 is better in Arima family, which can be used as a prediction tool
+
+
+## Review of the prediction of the last 5 weeks 
+```{r, fig.height=7, fig.width=14}
+
+review.length <- 5
+
+refined.training.set.last5weeks <- 
+        window(close.price, start = 260, end = length(close.price) - review.length)
+
+refined.test.set.last5weeks <- 
+        window(close.price, start = length(close.price) - review.length + 1)
+
+```
+
+```{r, fig.height=7, fig.width=10}
+tsdisplay(refined.training.set.last5weeks)
+```
+
+```{r, fig.height=7, fig.width=10}
+
+par(mfrow = c(2,1))
+plot(refined.training.set.last5weeks)
+plot(diff(refined.training.set.last5weeks))
+abline(h = 0, col = "red")
+```
+
+```{r, fig.height=7, fig.width=10}
+
+tsdisplay(diff(refined.training.set.last5weeks))
+```
+
+```{r}
+
+##nsdiffs(refined.training.set.last5weeks)
+ndiffs(refined.training.set.last5weeks)
+
+```
+
+```{r, fig.height=7, fig.width=10}
+
+(fit.010.last5weeks <- Arima(refined.training.set.last5weeks, order = c(0,1,0)))
+
+tsdisplay(residuals(fit.010.last5weeks))
+
+```
+
+```{r}
+
+Box.test(residuals(fit.010.last5weeks), lag=4, fitdf=0)
+Box.test(residuals(fit.010.last5weeks), lag=4, fitdf=0, type = "Lj")
+
+```
+
+
+
+```{r}
+name.aicc <- c("Arima(refined.training.set.last5weeks, order = c(0,1,0))$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(0,1,1))$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(0,1,2))$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(0,1,3))$aicc",
+               
+               "Arima(refined.training.set.last5weeks, order = c(1,1,0))$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(1,1,1))$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(1,1,2))$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(1,1,3))$aicc",
+               
+               "Arima(refined.training.set.last5weeks, order = c(2,1,0))$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(2,1,1))$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(2,1,2))$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(2,1,3))$aicc",
+               
+               "Arima(refined.training.set.last5weeks, order = c(3,1,0))$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(3,1,1))$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(3,1,2))$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(3,1,3))$aicc",
+               
+               "Arima(refined.training.set.last5weeks, order = c(0,1,0), include.drift = TRUE)$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(0,1,1), include.drift = TRUE)$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(0,1,2), include.drift = TRUE)$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(0,1,3), include.drift = TRUE)$aicc",
+               
+               "Arima(refined.training.set.last5weeks, order = c(1,1,0), include.drift = TRUE)$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(1,1,1), include.drift = TRUE)$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(1,1,2), include.drift = TRUE)$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(1,1,3), include.drift = TRUE)$aicc",
+               
+               "Arima(refined.training.set.last5weeks, order = c(2,1,0), include.drift = TRUE)$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(2,1,1), include.drift = TRUE)$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(2,1,2), include.drift = TRUE)$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(2,1,3), include.drift = TRUE)$aicc",
+               
+               "Arima(refined.training.set.last5weeks, order = c(3,1,0), include.drift = TRUE)$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(3,1,1), include.drift = TRUE)$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(3,1,2), include.drift = TRUE)$aicc",
+               "Arima(refined.training.set.last5weeks, order = c(3,1,3), include.drift = TRUE)$aicc"
+)
+
+aicc <- unlist(lapply(lapply(name.aicc, parse, file = "", n = NULL), eval))
+
+name <-  substr(name.aicc, 1, nchar(name.aicc) - 5)
+
+df <- data.frame(name = sub("refined.training.set","",name), 
+                 aicc = round(aicc, digits = 3))
+
+(df[order(df$aicc),])
+
+```
+
+Arima(0,1,0) is preferred.
+
+
+```{r}
+
+auto.arima(refined.training.set.last5weeks, stepwise = FALSE, approximation = FALSE)
+                       
+```
+
+Arima(0,1,0) is also selected by auto method.
+
+#### Relationship Between Residuals And Time
+
+```{r}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(residuals(fit.010.last5weeks), axes = FALSE, main = "Arima(0,1,0)")
+abline(h = 0, col = "red")
+axis(1, 
+     at = seq(tsp(refined.training.set.last5weeks)[1], tsp(refined.training.set.last5weeks)[2], 5), 
+     labels = original.data[seq(tsp(refined.training.set.last5weeks)[1], 
+                                tsp(refined.training.set.last5weeks)[2], 5), 1])
+axis(2)
+box()
+```
+
+#### Relationship Between Residuals And Fitted Value
+
+```{r}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(as.numeric(residuals(fit.010.last5weeks)) ~ as.numeric(fitted(fit.010.last5weeks)), 
+     main = "Arima(0,1,0)")
+abline(h = 0, col = "red")
+
+
+
+```
+
+There is no obvious heteroscedasticity.
+
+
+#### Normality of  Residuals
+
+```{r}
+# dev.off()
+par(mfrow = c(1,1))
+
+qqnorm(residuals(fit.010.last5weeks), main = "Arima(0,1,0)")
+qqline(residuals(fit.010.last5weeks))
+
+```
+
+
+```{r, fig.height=7, fig.width=14}
+refined.fc.arima.last5weeks <- forecast(fit.010.last5weeks, #h = 70, 
+                          h = review.length,  
+                          level = c(80,95))
+
+
+ylim.upper.last5weeks <- max(c(refined.fc.arima.last5weeks$upper, 
+                    refined.fc.arima.last5weeks$x)) + 0.1
+
+
+ylim.lower.last5weeks <- min(c(refined.fc.arima.last5weeks$lower, 
+                    refined.fc.arima.last5weeks$x)) - 0.1
+
+plot(refined.fc.arima.last5weeks, 
+     ylim = c(ylim.lower.last5weeks, ylim.upper.last5weeks),
+     type = "o", plot.conf = TRUE, shaded = TRUE, 
+     fcol = "red", pi.col = "red",
+     axes = FALSE, main = "Forecast for the last 5 weeks using Arima(0,1,0) model")
+
+lines(fitted(refined.fc.arima.last5weeks), col = "red")
+
+lines(window(close.price, start = tsp(refined.training.set.last5weeks)[1]), 
+      type = "o")
+
+axis(1, at = seq(tsp(refined.training.set.last5weeks)[1], length(close.price), 5), 
+     labels = original.data[seq(tsp(refined.training.set.last5weeks)[1], length(close.price), 5), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(refined.fc.arima.last5weeks$x)[1], length(close.price), 5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower.last5weeks, ylim.upper.last5weeks, 0.3), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+
+summary(refined.fc.arima.last5weeks)
+
+```
+
+
+The actual values of the period after 2016-9-30 are in the 80% prediction interval of the prediction in 2016-10-30. 
+
+## Review of the prediction of the last week
+```{r, fig.height=7, fig.width=14}
+
+refined.dataset.last.week <- window(close.price, start = 260, end = length(close.price) - 1)
+
+```
+
+```{r, fig.height=7, fig.width=10}
+
+tsdisplay(refined.dataset.last.week)
+```
+
+```{r, fig.height=7, fig.width=10}
+
+par(mfrow = c(2,1))
+plot(refined.dataset.last.week)
+plot(diff(refined.dataset.last.week))
+abline(h = 0, col = "red")
+```
+
+```{r, fig.height=7, fig.width=10}
+
+tsdisplay(diff(refined.dataset.last.week))
+```
+
+```{r}
+
+##nsdiffs(refined.dataset.last.week)
+ndiffs(refined.dataset.last.week)
+
+```
+
+
+
+```{r, fig.height=7, fig.width=10}
+
+(fit.010.start260.last.week <- Arima(refined.dataset.last.week, order = c(0,1,0)))
+
+tsdisplay(residuals(fit.010.start260.last.week))
+```
+
+```{r}
+
+Box.test(residuals(fit.010.start260.last.week), lag=4, fitdf=0)
+Box.test(residuals(fit.010.start260.last.week), lag=4, fitdf=0, type = "Lj")
+
+```
+
+
+
+```{r}
+name.aicc <- c("Arima(refined.dataset.last.week, order = c(0,1,0))$aicc",
+               "Arima(refined.dataset.last.week, order = c(0,1,1))$aicc",
+               "Arima(refined.dataset.last.week, order = c(0,1,2))$aicc",
+               "Arima(refined.dataset.last.week, order = c(0,1,3))$aicc",
+               
+               "Arima(refined.dataset.last.week, order = c(1,1,0))$aicc",
+               "Arima(refined.dataset.last.week, order = c(1,1,1))$aicc",
+               "Arima(refined.dataset.last.week, order = c(1,1,2))$aicc",
+               "Arima(refined.dataset.last.week, order = c(1,1,3))$aicc",
+               
+               "Arima(refined.dataset.last.week, order = c(2,1,0))$aicc",
+               "Arima(refined.dataset.last.week, order = c(2,1,1))$aicc",
+               "Arima(refined.dataset.last.week, order = c(2,1,2))$aicc",
+               "Arima(refined.dataset.last.week, order = c(2,1,3))$aicc",
+               
+               "Arima(refined.dataset.last.week, order = c(3,1,0))$aicc",
+               "Arima(refined.dataset.last.week, order = c(3,1,1))$aicc",
+               "Arima(refined.dataset.last.week, order = c(3,1,2))$aicc",
+               "Arima(refined.dataset.last.week, order = c(3,1,3))$aicc",
+               
+               "Arima(refined.dataset.last.week, order = c(0,1,0), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset.last.week, order = c(0,1,1), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset.last.week, order = c(0,1,2), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset.last.week, order = c(0,1,3), include.drift = TRUE)$aicc",
+               
+               "Arima(refined.dataset.last.week, order = c(1,1,0), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset.last.week, order = c(1,1,1), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset.last.week, order = c(1,1,2), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset.last.week, order = c(1,1,3), include.drift = TRUE)$aicc",
+               
+               "Arima(refined.dataset.last.week, order = c(2,1,0), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset.last.week, order = c(2,1,1), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset.last.week, order = c(2,1,2), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset.last.week, order = c(2,1,3), include.drift = TRUE)$aicc",
+               
+               "Arima(refined.dataset.last.week, order = c(3,1,0), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset.last.week, order = c(3,1,1), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset.last.week, order = c(3,1,2), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset.last.week, order = c(3,1,3), include.drift = TRUE)$aicc"
+               
+)
+
+aicc <- unlist(lapply(lapply(name.aicc, parse, file = "", n = NULL), eval))
+
+name <-  substr(name.aicc, 1, nchar(name.aicc) - 5)
+
+df <- data.frame(name = sub("refined.dataset","",name), 
+                 aicc = round(aicc, digits = 3))
+
+(df[order(df$aicc),])
+
+```
+
+Arima(2,1,1) with drift is preferred.
+
+
+```{r}
+
+auto.arima(refined.dataset.last.week, stepwise = FALSE, approximation = FALSE)
+```
+
+Arima(0,1,0) is selected by auto method.
+
+```{r, fig.height=7, fig.width=10}
+
+(fit.211.start260.last.week <- 
+         Arima(refined.dataset.last.week, order = c(2,1,1), include.drift = TRUE))
+
+tsdisplay(residuals(fit.211.start260.last.week))
+
+```
+
+```{r, fig.height=7, fig.width=10}
+
+(fit.010.start260.last.week <- Arima(refined.dataset.last.week, order = c(0,1,0)))
+
+
+tsdisplay(residuals(fit.010.start260.last.week))
+
+```
+
+
+```{r}
+
+Box.test(residuals(fit.211.start260.last.week), lag=4, fitdf=3)
+Box.test(residuals(fit.211.start260.last.week), lag=4, fitdf=3, type = "Lj")
+
+```
+
+```{r}
+
+Box.test(residuals(fit.010.start260.last.week), lag=4, fitdf=0)
+Box.test(residuals(fit.010.start260.last.week), lag=4, fitdf=0, type = "Lj")
+
+```
+
+
+#### Relationship Between Residuals And Time
+
+```{r, fig.height=7, fig.width=10}
+# dev.off()
+par(mfrow = c(1,2))
+
+plot(residuals(fit.211.start260.last.week), axes = FALSE, main = "Arima(2,1,1)")
+abline(h = 0, col = "red")
+axis(1, 
+     at = seq(tsp(refined.dataset.last.week)[1], tsp(refined.dataset.last.week)[2], 5), 
+     labels = original.data[seq(tsp(refined.dataset.last.week)[1], 
+                                tsp(refined.dataset.last.week)[2], 5), 1])
+axis(2)
+box()
+
+plot(residuals(fit.010.start260.last.week), axes = FALSE, main = "Arima(0,1,0)")
+abline(h = 0, col = "red")
+axis(1, 
+     at = seq(tsp(refined.dataset.last.week)[1], tsp(refined.dataset.last.week)[2], 5), 
+     labels = original.data[seq(tsp(refined.dataset.last.week)[1], 
+                                tsp(refined.dataset.last.week)[2], 5), 1])
+axis(2)
+box()
+```
+
+#### Relationship Between Residuals And Fitted Value
+
+```{r, fig.height=7, fig.width=10}
+# dev.off()
+par(mfrow = c(1,2))
+
+plot(as.numeric(residuals(fit.211.start260.last.week)) ~ as.numeric(fitted(fit.211.start260.last.week)), 
+     main = "Arima(2,1,1)")
+abline(h = 0, col = "red")
+
+plot(as.numeric(residuals(fit.010.start260.last.week)) ~ as.numeric(fitted(fit.010.start260.last.week)), 
+     main = "Arima(0,1,0)")
+abline(h = 0, col = "red")
+
+
+```
+
+There is no obvious heteroscedasticity.
+
+
+#### Normality of  Residuals
+
+```{r, fig.height=7, fig.width=10}
+# dev.off()
+par(mfrow = c(1,2))
+
+qqnorm(residuals(fit.211.start260.last.week), main = "Arima(2,1,1)")
+qqline(residuals(fit.211.start260.last.week))
+
+qqnorm(residuals(fit.010.start260.last.week), main = "Arima(0,1,0)")
+qqline(residuals(fit.010.start260.last.week))
+
+```
+
+
+```{r, fig.height=7, fig.width=14}
+refined.fc.arima.211.last.week <- forecast(fit.211.start260.last.week, 
+                          h = 1,  
+                          level = 80)
+
+refined.fc.arima.010.last.week <- forecast(fit.010.start260.last.week, 
+                          h = 1,  
+                          level = 80)
+
+ylim.upper <- max(c(refined.fc.arima.211.last.week$upper, 
+                    refined.fc.arima.211.last.week$x,
+                    refined.fc.arima.010.last.week$upper)) + 0.1
+
+
+ylim.lower <- min(c(refined.fc.arima.211.last.week$lower, 
+                    refined.fc.arima.211.last.week$x,
+                    refined.fc.arima.010.last.week$lower)) - 0.1
+
+par(mfrow = c(1,2))
+
+plot(refined.fc.arima.211.last.week, ylim = c(ylim.lower, ylim.upper),
+     type = "o", plot.conf = TRUE, shaded = FALSE, 
+     fcol = "red", pi.col = "red",
+     axes = FALSE, main = "Forecast for last week using Arima(2,1,1) model")
+
+lines(fitted(refined.fc.arima.211.last.week), col = "red")
+
+lines(window(close.price, start = tsp(refined.dataset.last.week)[1]), 
+      type = "o")
+
+axis(1, at = seq(tsp(refined.fc.arima.211.last.week$x)[1], length(close.price), 5), 
+     labels = original.data[seq(tsp(refined.fc.arima.211.last.week$x)[1], length(close.price), 5), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(refined.fc.arima.211.last.week$x)[1], length(close.price), 5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower, ylim.upper, 0.3), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+
+summary(refined.fc.arima.211.last.week)
+
+plot(refined.fc.arima.010.last.week, ylim = c(ylim.lower, ylim.upper),
+     type = "o", plot.conf = TRUE, shaded = FALSE, 
+     fcol = "red", pi.col = "red",
+     axes = FALSE, main = "Forecast for last week using Arima(0,1,0) model")
+
+lines(fitted(refined.fc.arima.010.last.week), col = "red")
+
+lines(window(close.price, start = tsp(refined.dataset.last.week)[1]), 
+      type = "o")
+
+axis(1, at = seq(tsp(refined.fc.arima.010.last.week$x)[1], length(close.price), 5), 
+     labels = original.data[seq(tsp(refined.fc.arima.010.last.week$x)[1], length(close.price), 5), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(refined.fc.arima.010.last.week$x)[1], length(close.price), 5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower, ylim.upper, 0.3), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+
+summary(refined.fc.arima.010.last.week)
+
+
+```
+
+
+The actual value of the last week is in the 80% prediction interval. 
+
+## Predict the index of the next 3 weeks
+
+Before next prediction, training data and testing data are all used to refine the Arima model.
+```{r, fig.height=7, fig.width=10}
+
+refined.dataset <- window(close.price, start = 260) 
+
+tsdisplay(refined.dataset)
+```
+
+```{r, fig.height=7, fig.width=10}
+
+par(mfrow = c(2,1))
+plot(refined.dataset)
+plot(diff(refined.dataset))
+abline(h = 0, col = "red")
+```
+
+```{r, fig.height=7, fig.width=10}
+
+tsdisplay(diff(refined.dataset))
+```
+
+```{r}
+
+##nsdiffs(refined.dataset)
+ndiffs(refined.dataset)
+
+```
+
+```{r, fig.height=7, fig.width=10}
+
+(fit.012.start260.endfinal <- Arima(refined.dataset, order = c(0,1,2)))
+
+tsdisplay(residuals(fit.012.start260.endfinal))
+```
+
+```{r}
+
+Box.test(residuals(fit.012.start260.endfinal), lag=4, fitdf=2)
+Box.test(residuals(fit.012.start260.endfinal), lag=4, fitdf=2, type = "Lj")
+
+```
+
+
+
+```{r}
+name.aicc <- c("Arima(refined.dataset, order = c(0,1,0))$aicc",
+               "Arima(refined.dataset, order = c(0,1,1))$aicc",
+               "Arima(refined.dataset, order = c(0,1,2))$aicc",
+               "Arima(refined.dataset, order = c(0,1,3))$aicc",
+               
+               "Arima(refined.dataset, order = c(1,1,0))$aicc",
+               "Arima(refined.dataset, order = c(1,1,1))$aicc",
+               "Arima(refined.dataset, order = c(1,1,2))$aicc",
+               "Arima(refined.dataset, order = c(1,1,3))$aicc",
+               
+               "Arima(refined.dataset, order = c(2,1,0))$aicc",
+               "Arima(refined.dataset, order = c(2,1,1))$aicc",
+               "Arima(refined.dataset, order = c(2,1,2))$aicc",
+               "Arima(refined.dataset, order = c(2,1,3))$aicc",
+               
+               "Arima(refined.dataset, order = c(3,1,0))$aicc",
+               "Arima(refined.dataset, order = c(3,1,1))$aicc",
+               "Arima(refined.dataset, order = c(3,1,2))$aicc",
+               "Arima(refined.dataset, order = c(3,1,3))$aicc",
+               
+               "Arima(refined.dataset, order = c(0,1,0), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset, order = c(0,1,1), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset, order = c(0,1,2), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset, order = c(0,1,3), include.drift = TRUE)$aicc",
+               
+               "Arima(refined.dataset, order = c(1,1,0), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset, order = c(1,1,1), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset, order = c(1,1,2), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset, order = c(1,1,3), include.drift = TRUE)$aicc",
+               
+               "Arima(refined.dataset, order = c(2,1,0), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset, order = c(2,1,1), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset, order = c(2,1,2), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset, order = c(2,1,3), include.drift = TRUE)$aicc",
+               
+               "Arima(refined.dataset, order = c(3,1,0), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset, order = c(3,1,1), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset, order = c(3,1,2), include.drift = TRUE)$aicc",
+               "Arima(refined.dataset, order = c(3,1,3), include.drift = TRUE)$aicc"
+               
+)
+
+aicc <- unlist(lapply(lapply(name.aicc, parse, file = "", n = NULL), eval))
+
+name <-  substr(name.aicc, 1, nchar(name.aicc) - 5)
+
+df <- data.frame(name = sub("refined.dataset","",name), 
+                 aicc = round(aicc, digits = 3))
+
+(df[order(df$aicc),])
+
+```
+
+Arima(2,1,1) with drift is preferred.
+
+
+```{r}
+
+auto.arima(refined.dataset, stepwise = FALSE, approximation = FALSE)
+
+```
+
+Arima(0,1,0) is selected by auto method.
+
+
+```{r, fig.height=7, fig.width=10}
+
+(fit.211.start260.endfinal <- Arima(refined.dataset, order = c(2,1,1), include.drift = TRUE))
+
+tsdisplay(residuals(fit.211.start260.endfinal))
+```
+
+```{r, fig.height=7, fig.width=10}
+
+(fit.010.start260.endfinal <- Arima(refined.dataset, order = c(0,1,0)))
+
+tsdisplay(residuals(fit.010.start260.endfinal))
+```
+
+
+```{r}
+
+Box.test(residuals(fit.211.start260.endfinal), lag=4, fitdf=3)
+Box.test(residuals(fit.211.start260.endfinal), lag=4, fitdf=3, type = "Lj")
+
+```
+
+```{r}
+
+Box.test(residuals(fit.010.start260.endfinal), lag=4, fitdf=0)
+Box.test(residuals(fit.010.start260.endfinal), lag=4, fitdf=0, type = "Lj")
+
+```
+
+
+#### Relationship Between Residuals And Time
+
+```{r, fig.height=7, fig.width=10}
+# dev.off()
+par(mfrow = c(1,2))
+
+plot(residuals(fit.211.start260.endfinal), axes = FALSE, main = "Arima(2,1,1)")
+abline(h = 0, col = "red")
+axis(1, 
+     at = seq(tsp(refined.dataset)[1], tsp(refined.dataset)[2], 5), 
+     labels = original.data[seq(tsp(refined.dataset)[1], 
+                                tsp(refined.dataset)[2], 5), 1])
+axis(2)
+box()
+
+plot(residuals(fit.010.start260.endfinal), axes = FALSE, main = "Arima(0,1,0)")
+abline(h = 0, col = "red")
+axis(1, 
+     at = seq(tsp(refined.dataset)[1], tsp(refined.dataset)[2], 5), 
+     labels = original.data[seq(tsp(refined.dataset)[1], 
+                                tsp(refined.dataset)[2], 5), 1])
+axis(2)
+box()
+```
+
+#### Relationship Between Residuals And Fitted Value
+
+```{r, fig.height=7, fig.width=10}
+# dev.off()
+par(mfrow = c(1,2))
+
+plot(as.numeric(residuals(fit.211.start260.endfinal)) ~ as.numeric(fitted(fit.211.start260.endfinal)), 
+     main = "Arima(2,1,1)")
+abline(h = 0, col = "red")
+
+plot(as.numeric(residuals(fit.010.start260.endfinal)) ~ as.numeric(fitted(fit.010.start260.endfinal)), 
+     main = "Arima(0,1,0)")
+abline(h = 0, col = "red")
+
+
+```
+
+There is no obvious heteroscedasticity.
+
+
+#### Normality of  Residuals
+
+```{r, fig.height=7, fig.width=10}
+# dev.off()
+par(mfrow = c(1,2))
+
+qqnorm(residuals(fit.211.start260.endfinal), main = "Arima(2,1,1)")
+qqline(residuals(fit.211.start260.endfinal))
+
+qqnorm(residuals(fit.010.start260.endfinal), main = "Arima(0,1,0)")
+qqline(residuals(fit.010.start260.endfinal))
+```
+
+```{r, fig.height=7, fig.width=14}
+
+prediction.length <- 3
+
+refined.fc.arima.211.next3weeks <- forecast(fit.211.start260.endfinal, 
+                          h = prediction.length,  
+                          level = 80)
+
+refined.fc.arima.010.next3weeks <- forecast(fit.010.start260.endfinal, 
+                          h = prediction.length,  
+                          level = 80)
+
+ylim.upper.next3weeks <- max(c(refined.fc.arima.211.next3weeks$upper, 
+                    refined.fc.arima.211.next3weeks$x,
+                    refined.fc.arima.010.next3weeks$upper)) + 0.1
+
+
+ylim.lower.next3weeks <- min(c(refined.fc.arima.211.next3weeks$lower, 
+                    refined.fc.arima.211.next3weeks$x,
+                    refined.fc.arima.010.next3weeks$lower)) - 0.1
+
+par(mfrow = c(1,2))
+plot(refined.fc.arima.211.next3weeks, 
+     ylim = c(ylim.lower.next3weeks, ylim.upper.next3weeks),
+     type = "o", plot.conf = TRUE, shaded = FALSE, 
+     fcol = "red", pi.col = "red",
+     axes = FALSE, main = "Forecast for the next 3 weeks using Arima(2,1,1) model")
+
+lines(fitted(refined.fc.arima.211.next3weeks), col = "red")
+
+axis(1, at = seq(tsp(refined.fc.arima.211.next3weeks$x)[1], length(close.price), 5), 
+     labels = original.data[seq(tsp(refined.fc.arima.211.next3weeks$x)[1], length(close.price), 5), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(refined.fc.arima.211.next3weeks$x)[1], length(close.price), 5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower.next3weeks, ylim.upper.next3weeks, 0.3), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+
+summary(refined.fc.arima.211.next3weeks)
+
+plot(refined.fc.arima.010.next3weeks, 
+     ylim = c(ylim.lower.next3weeks, ylim.upper.next3weeks),
+     type = "o", plot.conf = TRUE, shaded = FALSE, 
+     fcol = "red", pi.col = "red",
+     axes = FALSE, main = "Forecast for the next 3 weeks using Arima(0,1,0) model")
+
+lines(fitted(refined.fc.arima.010.next3weeks), col = "red")
+
+axis(1, at = seq(tsp(refined.fc.arima.010.next3weeks$x)[1], length(close.price), 5), 
+     labels = original.data[seq(tsp(refined.fc.arima.010.next3weeks$x)[1], length(close.price), 5), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(refined.fc.arima.010.next3weeks$x)[1], length(close.price), 5), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower.next3weeks, ylim.upper.next3weeks, 0.3), 
+       col = "springgreen4", 
+       lty = "dotted",
+       lwd = par("lwd"))
+
+
+summary(refined.fc.arima.010.next3weeks)
+
+```
+
+The 80% prediction interval of stock index of the next week is []. So the possibility of the event that stock index is larger than  is 90% and the possibility of the event that stock index is larger than  is 10%, which can be treated as one type of condition of buying and selling.  
