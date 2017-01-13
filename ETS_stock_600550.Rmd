@@ -1,7 +1,7 @@
 ---
 title: "ETS Prediction Of Stock 600550"
 author: "Wu Wei"
-date: "2016-12-12"
+date: "2017-1-4"
 output: html_document
 ---
 
@@ -15,17 +15,14 @@ output: html_document
 ## Library input & Data Input
 ```{r}
 suppressMessages(library(forecast))
-# suppressMessages(library(quantmod))
-# suppressMessages(library(TTR))
 
 setwd("d://MyR//stock//")
 original.data <- read.csv("600550.csv")
-# View(original.data)
 close.price <- as.ts(original.data[,5])
 
-training.set.start260 <- window(close.price, start = 260, end = 274)
-training.set.start235 <- window(close.price, start = 235, end = 274)
-test.set <- window(close.price, start = 275)
+training.set.start260 <- window(close.price, start = 260, end = 277)
+training.set.start235 <- window(close.price, start = 235, end = 277)
+test.set <- window(close.price, start = 278)
 
 ```
 
@@ -816,43 +813,58 @@ SES model for data begining from 2015-12 is better because its prediction interv
 
 ## Conclusion
 
-* Holt model for data begining from 2016-6 is better, which can be used as a prediction tool
+* SES model for data begining from 2015-12 is better, which can be used as a prediction tool
 
 ## Review of the prediction of the last 5 weeks
 ```{r}
 review.length <- 5
 
 refined.training.set <- 
-        window(close.price, start = 260, end = length(close.price) - review.length)
+        window(close.price, start = 235, end = length(close.price) - review.length)
 
 refined.test.set <- window(close.price, start = length(close.price) - review.length + 1)
 
-refined.fit.holt.last5weeks <- holt(refined.training.set, 
-                          h = review.length,  
+BoxCox.lambda(refined.training.set)
+```
+
+```{r,fig.height=7, fig.width=10}
+
+
+fc.MNN.last5weeks <- forecast(ets(refined.training.set),
+                          h = review.length,
                           level = c(80,95))
 
+fc.ANN.last5weeks <- forecast(ets(refined.training.set, model = "ANN"),
+                          h = review.length,
+                          level = c(80,95))
+    
 
-summary(refined.fit.holt.last5weeks)
+# summary(refined.fit.holt.last5weeks)
 
-ylim.upper.last5weeks <- max(c(refined.fit.holt.last5weeks$upper, 
-                              refined.fit.holt.last5weeks$x,
-                              refined.test.set)) + 0.25
+ylim.upper.last5weeks <- max(c(fc.MNN.last5weeks$upper, 
+                               fc.MNN.last5weeks$x,
+                               fc.ANN.last5weeks$upper, 
+                               fc.ANN.last5weeks$x,
+                               refined.test.set)) + 0.25
 
-ylim.lower.last5weeks <- min(c(refined.fit.holt.last5weeks$lower, 
-                              refined.fit.holt.last5weeks$x,
+ylim.lower.last5weeks <- min(c(fc.MNN.last5weeks$lower, 
+                              fc.MNN.last5weeks$x,
+                              fc.ANN.last5weeks$lower, 
+                              fc.ANN.last5weeks$x,
                               refined.test.set)) - 0.25
 
+par(mfrow = c(1,2))
 
-plot(refined.fit.holt.last5weeks,
+plot(fc.MNN.last5weeks,
      ylim = c(ylim.lower.last5weeks, ylim.upper.last5weeks),
      type = "o", plot.conf = TRUE, shaded = TRUE, 
      pi.col = "red", fcol = "red",
-     axes = FALSE, main = "Forecast for the last 5 weeks using Holt model")
+     axes = FALSE, main = "Forecast for the last 5 weeks using MNN model")
 
 lines(window(close.price, start = tsp(refined.training.set)[1]), 
       type = "o")
 
-lines(fitted(refined.fit.holt.last5weeks), type = "o", col = "red")
+lines(fitted(fc.MNN.last5weeks), type = "o", col = "red")
 
 axis(1, at = seq(tsp(refined.training.set)[1], length(close.price), 3), 
      labels = original.data[seq(tsp(refined.training.set)[1], length(close.price), 3), 1])
@@ -869,35 +881,77 @@ abline(h = seq(ylim.lower.last5weeks, ylim.upper.last5weeks, 0.25),
        lty = "dotted",
        lwd = par("lwd"))
 
+plot(fc.ANN.last5weeks,
+     ylim = c(ylim.lower.last5weeks, ylim.upper.last5weeks),
+     type = "o", plot.conf = TRUE, shaded = TRUE, 
+     pi.col = "red", fcol = "red",
+     axes = FALSE, main = "Forecast for the last 5 weeks using ANN model")
+
+lines(window(close.price, start = tsp(refined.training.set)[1]), 
+      type = "o")
+
+lines(fitted(fc.ANN.last5weeks), type = "o", col = "red")
+
+axis(1, at = seq(tsp(refined.training.set)[1], length(close.price), 3), 
+     labels = original.data[seq(tsp(refined.training.set)[1], length(close.price), 3), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(refined.training.set)[1], length(close.price), 3),
+       col = "springgreen4",
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower.last5weeks, ylim.upper.last5weeks, 0.25),
+       col = "springgreen4",
+       lty = "dotted",
+       lwd = par("lwd"))
 
 ```
 
 The actual values of the last 5 weeks are in the 60% prediction interval. 
 
 ## Review of the prediction of the last week
+```{r}
+
+refined.dataset.last.week <- window(close.price, start = 235, end = length(close.price) - 1)
+BoxCox.lambda(refined.dataset.last.week)
+```
+
 ```{r,fig.height=7, fig.width=10}
 
-refined.dataset.last.week <- window(close.price, start = 260, end = length(close.price) - 1)
+# refined.fit.holt.last.week <- holt(refined.dataset.last.week,h = 1, level = c(80,95)) 
 
-refined.fit.holt.last.week <- holt(refined.dataset.last.week,h = 1, level = c(80,95)) 
+fc.MNN.last.week <- forecast(ets(refined.dataset.last.week),
+                          h = 1,
+                          level = c(80,95))
+
+fc.ANN.last.week <- forecast(ets(refined.dataset.last.week, model = "ANN"),
+                          h = 1,
+                          level = c(80,95))
                                         
-ylim.upper.last.week <- max(c(refined.fit.holt.last.week$upper, 
-                              refined.fit.holt.last.week$x)) + 0.25
+ylim.upper.last.week <- max(c(fc.MNN.last.week$upper, 
+                              fc.MNN.last.week$x,
+                              fc.ANN.last.week$upper, 
+                              fc.ANN.last.week$x)) + 0.25
 
-ylim.lower.last.week <- min(c(refined.fit.holt.last.week$lower, 
-                              refined.fit.holt.last.week$x)) - 0.25
+ylim.lower.last.week <- min(c(fc.MNN.last.week$lower, 
+                              fc.MNN.last.week$x,
+                              fc.ANN.last.week$lower, 
+                              fc.ANN.last.week$x)) - 0.25
 
+par(mfrow = c(1,2))
 
-plot(refined.fit.holt.last.week,
+plot(fc.MNN.last.week,
      ylim = c(ylim.lower.last.week, ylim.upper.last.week),
      type = "o", plot.conf = TRUE, shaded = TRUE, 
      pi.col = "red", fcol = "red",
-     axes = FALSE, main = "Forecast for the last week using Holt model")
+     axes = FALSE, main = "Forecast for the last week using MNN model")
 
 lines(window(close.price, start = tsp(refined.dataset.last.week)[1]), 
       type = "o")
 
-lines(fitted(refined.fit.holt.last.week), type = "o", col = "red")
+lines(fitted(fc.MNN.last.week), type = "o", col = "red")
 
 axis(1, at = seq(tsp(refined.dataset.last.week)[1], 
                  length(close.price), 3), 
@@ -916,7 +970,35 @@ abline(h = seq(ylim.lower.last.week, ylim.upper.last.week, 0.25),
        lty = "dotted",
        lwd = par("lwd"))
 
-summary(refined.fit.holt.last.week)
+# summary(refined.fit.holt.last.week)
+
+plot(fc.ANN.last.week,
+     ylim = c(ylim.lower.last.week, ylim.upper.last.week),
+     type = "o", plot.conf = TRUE, shaded = TRUE, 
+     pi.col = "red", fcol = "red",
+     axes = FALSE, main = "Forecast for the last week using ANN model")
+
+lines(window(close.price, start = tsp(refined.dataset.last.week)[1]), 
+      type = "o")
+
+lines(fitted(fc.ANN.last.week), type = "o", col = "red")
+
+axis(1, at = seq(tsp(refined.dataset.last.week)[1], 
+                 length(close.price), 3), 
+     labels = original.data[seq(tsp(refined.dataset.last.week)[1], 
+                                length(close.price), 3), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(refined.dataset.last.week)[1], length(close.price), 3),
+       col = "springgreen4",
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower.last.week, ylim.upper.last.week, 0.25),
+       col = "springgreen4",
+       lty = "dotted",
+       lwd = par("lwd"))
 
 ```
 
@@ -929,30 +1011,38 @@ Before next prediction, training data and testing data are all used to refine th
 ```{r, fig.height=7, fig.width=10}
 prediction.length <- 3
 
-refined.fit.holt <- holt(window(close.price, start = 260), 
-                         h = prediction.length, level = 60)
+fc.MNN.next3weeks <- forecast(ets(window(close.price, start = 235)),
+                          h = prediction.length,
+                          level = c(80,95))
 
+fc.ANN.next3weeks <- forecast(ets(window(close.price, start = 235), model = "ANN"),
+                          h = prediction.length,
+                          level = c(80,95))
 
-ylim.upper.next3weeks <- max(c(refined.fit.holt$upper, 
-                              refined.fit.holt$x)) + 0.25
+ylim.upper.next3weeks <- max(c(fc.MNN.next3weeks$upper, 
+                               fc.MNN.next3weeks$x,
+                               fc.ANN.next3weeks$upper, 
+                               fc.ANN.next3weeks$x)) + 0.25
 
-ylim.lower.next3weeks <- min(c(refined.fit.holt$lower, 
-                              refined.fit.holt$x)) - 0.25
+ylim.lower.next3weeks <- min(c(fc.MNN.next3weeks$lower, 
+                               fc.MNN.next3weeks$x,
+                               fc.ANN.next3weeks$lower, 
+                               fc.ANN.next3weeks$x)) - 0.25
+par(mfrow = c(1,2))
 
-
-plot(refined.fit.holt, ylim = c(ylim.lower.next3weeks, ylim.upper.next3weeks),
-     type = "o", plot.conf = TRUE, shaded = FALSE, 
+plot(fc.MNN.next3weeks, ylim = c(ylim.lower.next3weeks, ylim.upper.next3weeks),
+     type = "o", plot.conf = TRUE, shaded = TRUE, 
      pi.col = "red", fcol = "red",
-     axes = FALSE, main = "Forecast for the next 3 weeks using holt model")
+     axes = FALSE, main = "Forecast for the next 3 weeks using MNN model")
 
-lines(fitted(refined.fit.holt), type = "o", col = "red")
+lines(fitted(fc.MNN.next3weeks), type = "o", col = "red")
 
-axis(1, at = seq(tsp(refined.fit.holt$x)[1], length(close.price), 3), 
-     labels = original.data[seq(tsp(refined.fit.holt$x)[1], length(close.price), 3), 1])
+axis(1, at = seq(tsp(fc.MNN.next3weeks$x)[1], length(close.price), 3), 
+     labels = original.data[seq(tsp(fc.MNN.next3weeks$x)[1], length(close.price), 3), 1])
 axis(2)
 box()
 
-abline(v = seq(tsp(refined.fit.holt$x)[1], length(close.price), 3),
+abline(v = seq(tsp(fc.MNN.next3weeks$x)[1], length(close.price), 3),
        col = "springgreen4",
        lty = "dotted",
        lwd = par("lwd"))
@@ -962,8 +1052,32 @@ abline(h = seq(ylim.lower.next3weeks, ylim.upper.next3weeks, 0.25),
        lty = "dotted",
        lwd = par("lwd"))
 
-summary(refined.fit.holt)
+plot(fc.ANN.next3weeks, ylim = c(ylim.lower.next3weeks, ylim.upper.next3weeks),
+     type = "o", plot.conf = TRUE, shaded = TRUE, 
+     pi.col = "red", fcol = "red",
+     axes = FALSE, main = "Forecast for the next 3 weeks using ANN model")
 
+lines(fitted(fc.ANN.next3weeks), type = "o", col = "red")
+
+axis(1, at = seq(tsp(fc.ANN.next3weeks$x)[1], length(close.price), 3), 
+     labels = original.data[seq(tsp(fc.ANN.next3weeks$x)[1], length(close.price), 3), 1])
+axis(2)
+box()
+
+abline(v = seq(tsp(fc.ANN.next3weeks$x)[1], length(close.price), 3),
+       col = "springgreen4",
+       lty = "dotted",
+       lwd = par("lwd"))
+
+abline(h = seq(ylim.lower.next3weeks, ylim.upper.next3weeks, 0.25),
+       col = "springgreen4",
+       lty = "dotted",
+       lwd = par("lwd"))
+```
+
+```{r}
+summary(fc.MNN.next3weeks)
+summary(fc.ANN.next3weeks)
 ```
 
 The 60% prediction interval of stock index of the next week is [XXX, XXX]. So the possibility of the event that stock index is larger than XXX is 80% and the possibility of the event that stock index is larger than XXX is 20%, which can be treated as one type of condition of buying and selling.  

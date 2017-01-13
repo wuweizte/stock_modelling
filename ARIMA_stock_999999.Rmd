@@ -441,7 +441,7 @@ abline(h = seq(ylim.lower, ylim.upper, 50),
 Comparing with actual value of test set, forecast result of Arima(2,0,1) model is reasonable for a long time.
 
 
-## Comparison between Arima(0,1,0) model (for data between 2016-3 and 2016-9) and Arima(2,0,1) model (for data between 2015-12 and 2016-9) and Holt model (for data between 2016-3 and 2016-9)
+## Comparison between Arima(0,1,0) model (for data between 2016-3 and 2016-9) and Arima(2,0,1) model (for data between 2015-12 and 2016-9) and Holt model (for data between 2016-3 and 2016-9) 
 
 
 

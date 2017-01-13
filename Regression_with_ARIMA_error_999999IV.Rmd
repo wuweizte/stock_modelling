@@ -1,0 +1,1805 @@
+---
+title: "ARIMA Prediction Of Stock 999999"
+author: "Wu Wei"
+date: "2017-1-4"
+output: html_document
+---
+
+## Synopsis
+
+
+## Pure Arima Modelling
+### Library input & Data Input
+```{r}
+rm(list = ls())
+
+suppressMessages(library(forecast))
+suppressMessages(library(sandwich))
+suppressMessages(library(lmtest))
+
+setwd("d://MyR//stock//")
+original.data <- read.csv("goldmonthly.csv")
+# (original.data)
+
+close.price <- as.ts(original.data[,5])
+# volume <- as.ts(original.data[,6])
+kdj.k <- as.ts(original.data[,7])
+kdj.d <- as.ts(original.data[,8])
+
+# training.set.close.price <- window(close.price, start = 1, end = 240)
+# test.set.close.price <- window(close.price, start = 241)
+# 
+# # training.set.volume <- window(volume, start = 1, end = 240)
+# # test.set.volume <- window(volume, start = 241)
+# 
+# training.set.kdj.k <- window(kdj.k, start = 1, end = 240)
+# test.set.kdj.k <- window(kdj.k, start = 241)
+# 
+# training.set.kdj.d <- window(kdj.d, start = 1, end = 240)
+# test.set.kdj.d <- window(kdj.d, start = 241)
+
+```
+
+
+### Exploratory Data Analysis
+```{r, fig.height=8, fig.width=10}
+# dev.off()
+# par(mfrow = c(2,1))
+
+y.lower.limit <- signif(min(training.set.close.price), digits = 2) - 100
+y.upper.limit <- signif(max(training.set.close.price), digits = 2) + 100
+
+plot(training.set.close.price, axes = FALSE, main = "stock index of 999999", xlab = "")
+axis(1, 
+     at = seq(tsp(training.set.close.price)[1], tsp(training.set.close.price)[2], 10), 
+      labels = FALSE)
+
+text(seq(tsp(training.set.close.price)[1], tsp(training.set.close.price)[2], 10), 
+     par("usr")[3] - 300, 
+     labels = original.data[seq(tsp(training.set.close.price)[1], 
+                                tsp(training.set.close.price)[2], 10), 1], 
+     srt = 45, 
+     pos = 1, 
+     xpd = TRUE)
+
+axis(2, at = seq(y.lower.limit, y.upper.limit, 300),
+    labels = seq(y.lower.limit, y.upper.limit, 300), las = 1) 
+               
+box()
+
+abline(v = seq(tsp(training.set.close.price)[1], tsp(training.set.close.price)[2], 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(y.lower.limit, y.upper.limit, 300), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+#########
+
+# y.lower.limit <- signif(min(training.set.volume), digits = 1) - 2000000
+# y.upper.limit <- signif(max(training.set.volume), digits = 1) + 2000000
+# 
+# plot(training.set.volume, axes = FALSE, main = "volume of 999999", ylab = "volume(w)", xlab = "")
+# axis(1, 
+#      at = seq(tsp(training.set.volume)[1], tsp(training.set.volume)[2], 10), 
+#       labels = FALSE)
+# 
+# text(seq(tsp(training.set.volume)[1], tsp(training.set.volume)[2], 10), 
+#      par("usr")[3] - 4000000, 
+#      labels = original.data[seq(tsp(training.set.volume)[1], 
+#                                 tsp(training.set.volume)[2], 10), 1], 
+#      srt = 45, 
+#      pos = 1, 
+#      xpd = TRUE)
+# 
+# axis(2, at = seq(y.lower.limit, y.upper.limit, 4000000),
+#     labels = seq(y.lower.limit, y.upper.limit, 4000000) / 10000, las = 1)  
+#                
+# box()
+# 
+# abline(v = seq(tsp(training.set.volume)[1], tsp(training.set.volume)[2], 10), 
+#        col = "springgreen4", 
+#        lty = "dashed",
+#        lwd = par("lwd"))
+# 
+# abline(h = seq(y.lower.limit, y.upper.limit, 4000000), 
+#        col = "springgreen4", 
+#        lty = "dashed",
+#        lwd = par("lwd"))
+
+
+```
+
+```{r, fig.height=9, fig.width=10}
+
+tsdisplay(training.set.close.price)
+```
+
+```{r}
+
+ndiffs(training.set.close.price)
+
+```
+
+```{r, fig.height=9, fig.width=10}
+
+# tsdisplay(training.set.volume)
+```
+
+```{r}
+
+# ndiffs(training.set.volume)
+
+```
+
+
+### Modelling for close.price
+
+
+```{r, fig.height=9, fig.width=10}
+
+tsdisplay(diff(training.set.close.price))
+```
+
+
+```{r, fig.height=8, fig.width=10}
+
+(fit.010.close.price <- Arima(training.set.close.price, order = c(1,1,0), include.drift = FALSE))
+
+tsdisplay(residuals(fit.010.close.price))
+```
+
+```{r}
+
+Box.test(residuals(fit.010.close.price), lag=10, fitdf=0)
+Box.test(residuals(fit.010.close.price), lag=10, fitdf=0, type = "Lj")
+
+```
+
+
+
+```{r}
+name.aicc <- c("Arima(training.set.close.price, order = c(0,1,0))$aicc",
+               "Arima(training.set.close.price, order = c(0,1,1))$aicc",
+               "Arima(training.set.close.price, order = c(0,1,2))$aicc",
+               "Arima(training.set.close.price, order = c(0,1,3))$aicc",
+               
+               "Arima(training.set.close.price, order = c(1,1,0))$aicc",
+               "Arima(training.set.close.price, order = c(1,1,1))$aicc",
+               "Arima(training.set.close.price, order = c(1,1,2))$aicc",
+               "Arima(training.set.close.price, order = c(1,1,3))$aicc",
+               
+               "Arima(training.set.close.price, order = c(2,1,0))$aicc",
+               "Arima(training.set.close.price, order = c(2,1,1))$aicc",
+               "Arima(training.set.close.price, order = c(2,1,2))$aicc",
+               "Arima(training.set.close.price, order = c(2,1,3))$aicc",
+
+               "Arima(training.set.close.price, order = c(3,1,0))$aicc",
+               "Arima(training.set.close.price, order = c(3,1,1))$aicc",
+               "Arima(training.set.close.price, order = c(3,1,2))$aicc",
+               "Arima(training.set.close.price, order = c(3,1,3))$aicc",
+               
+               "Arima(training.set.close.price, order = c(0,1,0), include.drift = TRUE)$aicc",
+               "Arima(training.set.close.price, order = c(0,1,1), include.drift = TRUE)$aicc",
+               "Arima(training.set.close.price, order = c(0,1,2), include.drift = TRUE)$aicc",
+               "Arima(training.set.close.price, order = c(0,1,3), include.drift = TRUE)$aicc",
+               
+               "Arima(training.set.close.price, order = c(1,1,0), include.drift = TRUE)$aicc",
+               "Arima(training.set.close.price, order = c(1,1,1), include.drift = TRUE)$aicc",
+               "Arima(training.set.close.price, order = c(1,1,2), include.drift = TRUE)$aicc",
+               "Arima(training.set.close.price, order = c(1,1,3), include.drift = TRUE)$aicc",
+               
+               "Arima(training.set.close.price, order = c(2,1,0), include.drift = TRUE)$aicc",
+               "Arima(training.set.close.price, order = c(2,1,1), include.drift = TRUE)$aicc",
+               "Arima(training.set.close.price, order = c(2,1,2), include.drift = TRUE)$aicc",
+               "Arima(training.set.close.price, order = c(2,1,3), include.drift = TRUE)$aicc",
+
+               "Arima(training.set.close.price, order = c(3,1,0), include.drift = TRUE)$aicc",
+               "Arima(training.set.close.price, order = c(3,1,1), include.drift = TRUE)$aicc",
+               "Arima(training.set.close.price, order = c(3,1,2), include.drift = TRUE)$aicc",
+               "Arima(training.set.close.price, order = c(3,1,3), include.drift = TRUE)$aicc"
+               
+             
+)
+
+aicc <- unlist(lapply(lapply(name.aicc, parse, file = "", n = NULL), eval))
+
+name <-  substr(name.aicc, 1, nchar(name.aicc) - 5)
+
+df <- data.frame(name = sub("training.set","",name), 
+                 aicc = round(aicc, digits = 3))
+
+(df[order(df$aicc),])
+
+```
+
+Arima(2,1,2) is preferred.
+
+
+```{r}
+
+auto.arima(training.set.close.price, stepwise = FALSE, approximation = FALSE)
+
+```
+
+Arima(2,1,2) is also selected by auto method.
+
+```{r, fig.height=8, fig.width=10}
+
+(fit.212.close.price <- Arima(training.set.close.price, order = c(2,1,2)))
+
+tsdisplay(residuals(fit.212.close.price))
+```
+
+
+### White Noise Test
+
+
+```{r}
+
+Box.test(residuals(fit.212.close.price), lag=10, fitdf=4)
+Box.test(residuals(fit.212.close.price), lag=10, fitdf=4, type = "Lj")
+
+```
+
+### Relationship Between Residuals And Time
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(residuals(fit.212.close.price), axes = FALSE, main = "Arima(2,1,2)")
+abline(h = 0, col = "red")
+axis(1, 
+     at = seq(tsp(training.set.close.price)[1], tsp(training.set.close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.close.price)[1], 
+                                tsp(training.set.close.price)[2], 5), 1])
+axis(2)
+box()
+```
+
+### Relationship Between Residuals And Fitted Value
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(as.numeric(residuals(fit.212.close.price)) ~ as.numeric(fitted(fit.212.close.price)), 
+     main = "Arima(2,1,2)")
+abline(h = 0, col = "red")
+
+
+
+```
+
+There is no obvious heteroscedasticity.
+
+
+### Normality of  Residuals
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+qqnorm(residuals(fit.212.close.price), main = "Arima(2,1,2)")
+qqline(residuals(fit.212.close.price))
+
+```
+
+Residuals conform to normality.
+
+### Comparison between actual value and forecast result 
+
+```{r, fig.height=9, fig.width=10}
+par(mfrow = c(1,1))
+fc.arima212.close.price <- forecast(fit.212.close.price, h = length(test.set.close.price), 
+                              level = c(80,95))
+
+y.upper.limit <- signif(max(c(test.set.close.price,
+                    fc.arima212.close.price$upper, 
+                    fc.arima212.close.price$x)), digits = 2) + 100
+
+y.lower.limit <- signif(min(c(test.set.close.price,
+                    fc.arima212.close.price$lower, 
+                    fc.arima212.close.price$x)), digits = 2) - 100
+
+
+plot(fc.arima212.close.price, ylim = c(y.lower.limit, y.upper.limit),
+     type = "o", plot.conf = TRUE, shaded = TRUE, pi.col = "purple",
+     axes = FALSE, main = "Arima(2,1,2)", xlab = "")
+lines(test.set.close.price, type = "o",col = "red")
+
+axis(1, 
+     at = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+      labels = FALSE)
+
+text(seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+     par("usr")[3] - 250, 
+     labels = original.data[seq(tsp(close.price)[1], 
+                                tsp(close.price)[2], 10), 1], 
+     srt = 45, 
+     pos = 1, 
+     xpd = TRUE)
+
+axis(2, at = seq(y.lower.limit, y.upper.limit, 300),
+    labels = seq(y.lower.limit, y.upper.limit, 300), las = 1) 
+               
+box()
+
+abline(v = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(y.lower.limit, y.upper.limit, 300), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+
+```
+
+```{r}
+
+upper.bound <- fc.arima212.close.price$upper[,2]
+
+lower.bound <- fc.arima212.close.price$lower[,2]
+
+mean(test.set.close.price > lower.bound & test.set.close.price < upper.bound)
+
+```
+
+## Regression Modelling with Arima Errors
+
+### Exploratory Data Analysis
+```{r, fig.height = 14, fig.width=10}
+par(mfrow = c(3,1))
+plot(training.set.close.price)
+plot(training.set.kdj.k)
+plot(training.set.kdj.d)
+```
+
+
+```{r, fig.height=8, fig.width=10}
+
+# training.set.close.price <- window(close.price, start = 1, end = 240)
+# test.set.close.price <- window(close.price, start = 241)
+# 
+# training.set.volume <- window(volume, start = 1, end = 240)
+# test.set.volume <- window(volume, start = 241)
+
+# plot(training.set.close.price ~ training.set.volume)
+
+pairs(training.set.close.price ~ training.set.kdj.k + training.set.kdj.d)
+
+```
+
+```{r, fig.height=8, fig.width=10}
+
+# plot(diff(training.set.close.price) ~ diff(training.set.volume))
+
+pairs(diff(training.set.close.price) ~ diff(training.set.kdj.k) + diff(training.set.kdj.d))
+
+```
+
+```{r, fig.height=8, fig.width=10}
+# par(mfrow = c(2,1))
+# plot(log(training.set.close.price))
+# plot(log(training.set.volume))
+```
+
+```{r, fig.height=8, fig.width=10}
+ndiffs(log(training.set.close.price))
+ndiffs(log(training.set.kdj.k))
+ndiffs(log(training.set.kdj.d))
+```
+
+```{r, fig.height=8, fig.width=10}
+
+# plot(log(training.set.close.price) ~ log(training.set.volume))
+
+```
+
+```{r, fig.height=8, fig.width=10}
+
+# plot(diff(log(training.set.close.price)) ~ diff(log(training.set.volume)))
+
+```
+
+```{r, fig.height=8, fig.width=10}
+# Y <- ((abs(diff(log(training.set.close.price))))^(-3))
+# X <- ((abs(diff(log(training.set.volume))))^(1))
+# 
+# plot(Y ~ X)
+
+```
+
+
+### Modelling for close.price and KDJ
+
+```{r}
+
+# reg.df <- cbind(training.set.volume, training.set.kdj.k, training.set.kdj.d)
+
+reg.df <- cbind(training.set.kdj.k, training.set.kdj.d)
+(fit.arima.kdj <- auto.arima(training.set.close.price, xreg = reg.df))
+
+# summary(fit.lm <- lm(training.set.close.price ~ training.set.volume))
+
+# (fit <- Arima(training.set.close.price, xreg = training.set.volume, order = c(2,1,0)))
+
+# plot(training.set.close.price ~ training.set.volume)
+# abline(fit.lm)
+
+```
+
+### White Noise Test
+
+
+```{r}
+
+Box.test(residuals(fit.arima.kdj), lag=10, fitdf=1)
+Box.test(residuals(fit.arima.kdj), lag=10, fitdf=1, type = "Lj")
+
+```
+
+### Relationship Between Residuals And Time
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(residuals(fit.arima.kdj), axes = FALSE, main = "Regression with Arima error")
+abline(h = 0, col = "red")
+axis(1, 
+     at = seq(tsp(training.set.close.price)[1], tsp(training.set.close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.close.price)[1], 
+                                tsp(training.set.close.price)[2], 5), 1])
+axis(2)
+box()
+```
+
+### Relationship Between Residuals And Fitted Value
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(as.numeric(residuals(fit.arima.kdj)) ~ as.numeric(fitted(fit.arima.kdj)), 
+     main = "Regression with Arima error")
+abline(h = 0, col = "red")
+
+
+
+```
+
+There is obvious heteroscedasticity.
+
+
+### Normality of  Residuals
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+qqnorm(residuals(fit.arima.kdj), main = "Regression with Arima error")
+qqline(residuals(fit.arima.kdj))
+
+```
+
+Residuals conform to normality.
+
+
+### Comparison between actual value and forecast result 
+```{r, fig.height=9, fig.width=10}
+# par(mfrow = c(3,1))
+fc.arima.kdj <- forecast(fit.arima.kdj, 
+                         xreg = cbind(test.set.kdj.k, test.set.kdj.d),
+                         h = length(test.set.close.price), 
+                              level = c(80,95))
+
+y.upper.limit <- signif(max(c(test.set.close.price,
+                    fc.arima.kdj$upper, 
+                    fc.arima.kdj$x)), digits = 2) + 100
+
+y.lower.limit <- signif(min(c(test.set.close.price,
+                    fc.arima.kdj$lower, 
+                    fc.arima.kdj$x)), digits = 2) - 100
+
+
+plot(fc.arima.kdj, ylim = c(y.lower.limit, y.upper.limit),
+     type = "o", plot.conf = TRUE, shaded = TRUE, pi.col = "purple",
+     axes = FALSE, main = "Regression with Arima errors", xlab = "")
+lines(test.set.close.price, type = "o",col = "red")
+
+axis(1, 
+     at = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+      labels = FALSE)
+
+text(seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+     par("usr")[3] - 250, 
+     labels = original.data[seq(tsp(close.price)[1], 
+                                tsp(close.price)[2], 10), 1], 
+     srt = 45, 
+     pos = 1, 
+     xpd = TRUE)
+
+axis(2, at = seq(y.lower.limit, y.upper.limit, 300),
+    labels = seq(y.lower.limit, y.upper.limit, 300), las = 1) 
+               
+box()
+
+abline(v = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(y.lower.limit, y.upper.limit, 300), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+
+# plot(kdj.k)
+# plot(kdj.d)
+
+```
+
+```{r}
+
+upper.bound <- fc.arima.kdj$upper[,2]
+
+lower.bound <- fc.arima.kdj$lower[,2]
+
+mean(test.set.close.price > lower.bound & test.set.close.price < upper.bound)
+
+```
+
+### Modelling for close.price and lagged KDJ
+
+```{r}
+
+reg.lagged.df <- cbind(training.set.kdj.k,
+                training.set.kdj.d,       
+                c(NA, training.set.kdj.k[-length(training.set.kdj.k)]),
+                c(NA, training.set.kdj.d[-length(training.set.kdj.d)]),
+                c(NA, NA, head(training.set.kdj.k, length(training.set.kdj.k) - 2)),
+                c(NA, NA, head(training.set.kdj.d, length(training.set.kdj.d) - 2)),
+                c(NA, NA, NA, head(training.set.kdj.k, length(training.set.kdj.k) - 3)),
+                c(NA, NA, NA, head(training.set.kdj.d, length(training.set.kdj.d) - 3)))
+                
+
+fit.12 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:2])
+
+fit.14 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:4])
+
+fit.16 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:6])
+
+fit.18 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:8])
+
+fit.34 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 3:4])
+
+fit.36 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 3:6])
+
+fit.38 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 3:8])
+
+fit.2 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 2])
+fit.2.4 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(2,4)])
+fit.2.4.6 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(2,4,6)])
+fit.2.4.6.8 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(2,4,6,8)])
+
+fit.1 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1])
+fit.1.3 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(1,3)])
+fit.1.3.5 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(1,3,5)])
+fit.1.3.5.7 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(1,3,5,7)])
+
+
+fit.12$aicc
+fit.14$aicc
+fit.16$aicc
+fit.18$aicc
+fit.34$aicc
+fit.36$aicc
+fit.38$aicc
+
+fit.2$aicc
+fit.2.4$aicc
+fit.2.4.6$aicc
+fit.2.4.6.8$aicc
+
+fit.1$aicc
+fit.1.3$aicc
+fit.1.3.5$aicc
+fit.1.3.5.7$aicc
+```
+
+```{r}
+reg.lagged.df <- cbind(training.set.kdj.k,
+                training.set.kdj.d,       
+                c(NA, training.set.kdj.k[-length(training.set.kdj.k)]),
+                c(NA, training.set.kdj.d[-length(training.set.kdj.d)]),
+                c(NA, NA, head(training.set.kdj.k, length(training.set.kdj.k) - 2)),
+                c(NA, NA, head(training.set.kdj.d, length(training.set.kdj.d) - 2)),
+                c(NA, NA, NA, head(training.set.kdj.k, length(training.set.kdj.k) - 3)),
+                c(NA, NA, NA, head(training.set.kdj.d, length(training.set.kdj.d) - 3)))
+
+
+(fit.lagged.arima <- auto.arima(training.set.close.price, xreg = reg.lagged.df[, 1:4]))
+                    
+(fit.lagged.arima.2.4.6 <- auto.arima(training.set.close.price, xreg = reg.lagged.df[, c(2,4,6)])) 
+
+```
+
+```{r}
+
+# coeftest(fit.lagged.arima, vcov. = vcovHAC)
+                     
+
+```
+
+### White Noise Test
+
+
+```{r}
+
+Box.test(residuals(fit.lagged.arima), lag=10, fitdf=1)
+Box.test(residuals(fit.lagged.arima), lag=10, fitdf=1, type = "Lj")
+
+Box.test(residuals(fit.lagged.arima.2.4.6), lag=10, fitdf=1)
+Box.test(residuals(fit.lagged.arima.2.4.6), lag=10, fitdf=1, type = "Lj")
+
+```
+
+### Relationship Between Residuals And Time
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(residuals(fit.lagged.arima), axes = FALSE, main = "Lagged Regression with Arima error")
+abline(h = 0, col = "red")
+axis(1, 
+     at = seq(tsp(training.set.close.price)[1], tsp(training.set.close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.close.price)[1], 
+                                tsp(training.set.close.price)[2], 5), 1])
+axis(2)
+box()
+
+
+plot(residuals(fit.lagged.arima.2.4.6), axes = FALSE, main = "Lagged Regression with Arima error")
+abline(h = 0, col = "red")
+axis(1, 
+     at = seq(tsp(training.set.close.price)[1], tsp(training.set.close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.close.price)[1], 
+                                tsp(training.set.close.price)[2], 5), 1])
+axis(2)
+box()
+```
+
+### Relationship Between Residuals And Fitted Value
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(as.numeric(residuals(fit.lagged.arima)) ~ as.numeric(fitted(fit.lagged.arima)), 
+     main = "Lagged Regression with Arima error")
+abline(h = 0, col = "red")
+
+plot(as.numeric(residuals(fit.lagged.arima.2.4.6)) ~ as.numeric(fitted(fit.lagged.arima.2.4.6)), 
+     main = "Lagged Regression with Arima error")
+abline(h = 0, col = "red")
+
+```
+
+There is obvious heteroscedasticity.
+
+
+### Normality of  Residuals
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+qqnorm(residuals(fit.lagged.arima), main = "Lagged Regression with Arima error")
+qqline(residuals(fit.lagged.arima))
+
+
+qqnorm(residuals(fit.lagged.arima.2.4.6), main = "Lagged Regression with Arima error")
+qqline(residuals(fit.lagged.arima.2.4.6))
+```
+
+Residuals conform to normality.
+
+### Comparison between actual value and forecast result 
+```{r, fig.height=9, fig.width=10}
+# par(mfrow = c(3,1))
+fc.lagged.arima <- forecast(fit.lagged.arima, 
+                            xreg = cbind(test.set.kdj.k, 
+                                         test.set.kdj.d,
+        c(training.set.kdj.k[length(training.set.kdj.k)], test.set.kdj.k[-length(test.set.kdj.k)]),
+        c(training.set.kdj.d[length(training.set.kdj.d)], test.set.kdj.d[-length(test.set.kdj.d)])),
+                            h = length(test.set.close.price), 
+                            level = c(80,95))
+
+y.upper.limit <- signif(max(c(test.set.close.price,
+                    fc.lagged.arima$upper, 
+                    fc.lagged.arima$x)), digits = 2) + 100
+
+y.lower.limit <- signif(min(c(test.set.close.price,
+                    fc.lagged.arima$lower, 
+                    fc.lagged.arima$x)), digits = 2) - 100
+
+
+plot(fc.lagged.arima, ylim = c(y.lower.limit, y.upper.limit),
+     type = "o", plot.conf = TRUE, shaded = TRUE, pi.col = "purple",
+     axes = FALSE, main = "Lagged Regression with Arima errors", xlab = "")
+lines(test.set.close.price, type = "o",col = "red")
+
+axis(1, 
+     at = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+      labels = FALSE)
+
+text(seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+     par("usr")[3] - 250, 
+     labels = original.data[seq(tsp(close.price)[1], 
+                                tsp(close.price)[2], 10), 1], 
+     srt = 45, 
+     pos = 1, 
+     xpd = TRUE)
+
+axis(2, at = seq(y.lower.limit, y.upper.limit, 300),
+    labels = seq(y.lower.limit, y.upper.limit, 300), las = 1) 
+               
+box()
+
+abline(v = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(y.lower.limit, y.upper.limit, 300), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+```
+
+```{r}
+
+upper.bound <- fc.lagged.arima$upper[,2]
+
+lower.bound <- fc.lagged.arima$lower[,2]
+
+mean(test.set.close.price > lower.bound & test.set.close.price < upper.bound)
+
+```
+
+
+## Comparison of accuracy of 3 Models 
+```{r}
+
+
+df.test.set <- rbind(accuracy(fc.arima212.close.price, test.set.close.price)[2,],
+            accuracy(fc.arima.kdj, test.set.close.price)[2,],
+            accuracy(fc.lagged.arima, test.set.close.price)[2,])
+
+row.names(df.test.set) <- c("Pure Arima","Reg Arima", "Lagged reg")
+print(round(df.test.set, 2))
+
+
+
+```
+
+## Comparison of PI of 3 Models 
+```{r}
+arima.pure.pi <- fc.arima212.close.price$upper[,2] - fc.arima212.close.price$lower[,2]
+
+arima.kdj.pi <- fc.arima.kdj$upper[,2] - fc.arima.kdj$lower[,2]
+
+lagged.kdj.pi <- fc.lagged.arima$upper[,2] - fc.lagged.arima$lower[,2]
+
+cbind(arima.pure.pi, arima.kdj.pi, lagged.kdj.pi)
+
+# df.test.set <- rbind(accuracy(fc.arima212.close.price, test.set.close.price)[2,],
+#             accuracy(fc.arima.kdj, test.set.close.price)[2,])
+# 
+# row.names(df.test.set) <- c("Pure Arima","Reg Arima")
+# print(round(df.test.set, 3))
+
+
+
+```
+
+
+### Modelling for close.price and volume
+
+```{r}
+
+# reg.lagged.df <- cbind(training.set.volume,
+#                 c(NA, training.set.volume[-length(training.set.volume)]),
+#                 c(NA, NA, head(training.set.volume, length(training.set.volume) - 2)),
+#                 c(NA, NA, NA, head(training.set.volume, length(training.set.volume) - 3)))
+#                 
+# 
+# (fit.1 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+#                      xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1]))
+# 
+# (fit.12 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+#                      xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:2]))
+# 
+# (fit.13 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+#                      xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:3]))
+# 
+# (fit.14 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+#                      xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:4]))
+# 
+# 
+# fit.1$aicc
+# fit.12$aicc
+# fit.13$aicc
+# fit.14$aicc
+
+```
+
+
+## Arima Modelling for kdj.k
+```{r}
+
+(fit.arima.kdj.k <- auto.arima(training.set.kdj.k))
+
+```
+
+
+### White Noise Test
+
+
+```{r}
+
+Box.test(residuals(fit.arima.kdj.k), lag=10, fitdf=5)
+Box.test(residuals(fit.arima.kdj.k), lag=10, fitdf=5, type = "Lj")
+
+```
+
+### Relationship Between Residuals And Time
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(residuals(fit.arima.kdj.k), axes = FALSE, main = "Arima model of kdj.k")
+abline(h = 0, col = "red")
+axis(1, 
+     at = seq(tsp(training.set.close.price)[1], tsp(training.set.close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.close.price)[1], 
+                                tsp(training.set.close.price)[2], 5), 1])
+axis(2)
+box()
+```
+
+### Relationship Between Residuals And Fitted Value
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(as.numeric(residuals(fit.arima.kdj.k)) ~ as.numeric(fitted(fit.arima.kdj.k)), 
+     main = "Arima model of kdj.k")
+abline(h = 0, col = "red")
+
+
+
+```
+
+There is no obvious heteroscedasticity.
+
+
+### Normality of  Residuals
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+qqnorm(residuals(fit.arima.kdj.k), main = "Arima model of kdj.k")
+qqline(residuals(fit.arima.kdj.k))
+
+```
+
+Residuals conform to normality.
+
+### Comparison between actual value and forecast result 
+```{r, fig.height=9, fig.width=10}
+# par(mfrow = c(3,1))
+fc.arima.kdj.k <- forecast(fit.arima.kdj.k, 
+                             h = length(test.set.kdj.k), 
+                            level = c(80,95))
+
+plot(fc.arima.kdj.k, ylim = c(5, 95),
+     type = "o", plot.conf = FALSE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE, main = "Arima model of kdj.k", xlab = "")
+lines(test.set.kdj.k, type = "o",col = "red")
+
+axis(1, 
+     at = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+      labels = FALSE)
+
+text(seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+     par("usr")[3] - 250, 
+     labels = original.data[seq(tsp(close.price)[1], 
+                                tsp(close.price)[2], 10), 1], 
+     srt = 45, 
+     pos = 1, 
+     xpd = TRUE)
+
+axis(2, at = seq(5, 95, 10),
+    labels = seq(5, 95, 10), las = 1) 
+               
+box()
+
+abline(v = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(5, 95, 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+```
+
+
+## ETS Modelling for kdj.k
+```{r}
+
+(fit.ets.kdj.k <- ets(training.set.kdj.k))
+
+```
+
+
+### White Noise Test
+
+
+```{r}
+
+Box.test(residuals(fit.ets.kdj.k), lag=10, fitdf=3)
+Box.test(residuals(fit.ets.kdj.k), lag=10, fitdf=3, type = "Lj")
+
+```
+
+### Relationship Between Residuals And Time
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(residuals(fit.ets.kdj.k), axes = FALSE, main = "ets model of kdj.k")
+abline(h = 0, col = "red")
+axis(1, 
+     at = seq(tsp(training.set.close.price)[1], tsp(training.set.close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.close.price)[1], 
+                                tsp(training.set.close.price)[2], 5), 1])
+axis(2)
+box()
+```
+
+### Relationship Between Residuals And Fitted Value
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(as.numeric(residuals(fit.ets.kdj.k)) ~ as.numeric(fitted(fit.ets.kdj.k)), 
+     main = "ETS model of kdj.k")
+abline(h = 0, col = "red")
+
+
+
+```
+
+There is no obvious heteroscedasticity.
+
+
+### Normality of  Residuals
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+qqnorm(residuals(fit.ets.kdj.k), main = "ETS model of kdj.k")
+qqline(residuals(fit.ets.kdj.k))
+
+```
+
+Residuals conform to normality.
+
+### Comparison between actual value and forecast result 
+```{r, fig.height=9, fig.width=10}
+# par(mfrow = c(3,1))
+fc.ets.kdj.k <- forecast(fit.ets.kdj.k, 
+                             h = length(test.set.kdj.k), 
+                            level = c(80,95))
+
+plot(fc.ets.kdj.k, ylim = c(5, 95),
+     type = "o", plot.conf = FALSE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE, main = "ETS model of kdj.k", xlab = "")
+lines(test.set.kdj.k, type = "o",col = "red")
+
+axis(1, 
+     at = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+      labels = FALSE)
+
+text(seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+     par("usr")[3] - 250, 
+     labels = original.data[seq(tsp(close.price)[1], 
+                                tsp(close.price)[2], 10), 1], 
+     srt = 45, 
+     pos = 1, 
+     xpd = TRUE)
+
+axis(2, at = seq(5, 95, 10),
+    labels = seq(5, 95, 10), las = 1) 
+               
+box()
+
+abline(v = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(5, 95, 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+```
+
+## Comparison of accuracy of 2 Models 
+```{r}
+
+
+df.test.set <- rbind(accuracy(fc.arima.kdj.k, test.set.kdj.k)[2,],
+            accuracy(fc.ets.kdj.k, test.set.kdj.k)[2,])
+
+row.names(df.test.set) <- c("Arima","ETS")
+print(round(df.test.set, 2))
+
+
+
+```
+
+
+## Arima Modelling for kdj.d
+```{r}
+
+(fit.arima.kdj.d <- auto.arima(training.set.kdj.d))
+
+```
+
+
+### White Noise Test
+
+
+```{r}
+
+Box.test(residuals(fit.arima.kdj.d), lag=10, fitdf=3)
+Box.test(residuals(fit.arima.kdj.d), lag=10, fitdf=3, type = "Lj")
+
+```
+
+### Relationship Between Residuals And Time
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(residuals(fit.arima.kdj.d), axes = FALSE, main = "Arima model of kdj.d")
+abline(h = 0, col = "red")
+axis(1, 
+     at = seq(tsp(training.set.close.price)[1], tsp(training.set.close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.close.price)[1], 
+                                tsp(training.set.close.price)[2], 5), 1])
+axis(2)
+box()
+```
+
+### Relationship Between Residuals And Fitted Value
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(as.numeric(residuals(fit.arima.kdj.d)) ~ as.numeric(fitted(fit.arima.kdj.d)), 
+     main = "Arima model of kdj.d")
+abline(h = 0, col = "red")
+
+
+
+```
+
+There is no obvious heteroscedasticity.
+
+
+### Normality of  Residuals
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+qqnorm(residuals(fit.arima.kdj.d), main = "Arima model of kdj.d")
+qqline(residuals(fit.arima.kdj.d))
+
+```
+
+Residuals conform to normality.
+
+### Comparison between actual value and forecast result 
+```{r, fig.height=9, fig.width=10}
+# par(mfrow = c(3,1))
+fc.arima.kdj.d <- forecast(fit.arima.kdj.d, 
+                             h = length(test.set.kdj.d), 
+                            level = c(80,95))
+
+plot(fc.arima.kdj.d, ylim = c(5, 95),
+     type = "o", plot.conf = FALSE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE, main = "Arima model of kdj.d", xlab = "")
+lines(test.set.kdj.d, type = "o",col = "red")
+
+axis(1, 
+     at = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+      labels = FALSE)
+
+text(seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+     par("usr")[3] - 250, 
+     labels = original.data[seq(tsp(close.price)[1], 
+                                tsp(close.price)[2], 10), 1], 
+     srt = 45, 
+     pos = 1, 
+     xpd = TRUE)
+
+axis(2, at = seq(5, 95, 10),
+    labels = seq(5, 95, 10), las = 1) 
+               
+box()
+
+abline(v = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(5, 95, 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+```
+
+
+## ETS Modelling for kdj.d
+```{r}
+
+(fit.ets.kdj.d <- ets(training.set.kdj.d))
+
+```
+
+
+### White Noise Test
+
+
+```{r}
+
+Box.test(residuals(fit.ets.kdj.d), lag=10, fitdf=3)
+Box.test(residuals(fit.ets.kdj.d), lag=10, fitdf=3, type = "Lj")
+
+```
+
+### Relationship Between Residuals And Time
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(residuals(fit.ets.kdj.d), axes = FALSE, main = "ets model of kdj.k")
+abline(h = 0, col = "red")
+axis(1, 
+     at = seq(tsp(training.set.close.price)[1], tsp(training.set.close.price)[2], 5), 
+     labels = original.data[seq(tsp(training.set.close.price)[1], 
+                                tsp(training.set.close.price)[2], 5), 1])
+axis(2)
+box()
+```
+
+### Relationship Between Residuals And Fitted Value
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+plot(as.numeric(residuals(fit.ets.kdj.d)) ~ as.numeric(fitted(fit.ets.kdj.d)), 
+     main = "ETS model of kdj.d")
+abline(h = 0, col = "red")
+
+
+
+```
+
+There is no obvious heteroscedasticity.
+
+
+### Normality of  Residuals
+
+```{r, fig.height=9, fig.width=10}
+# dev.off()
+par(mfrow = c(1,1))
+
+qqnorm(residuals(fit.ets.kdj.d), main = "ETS model of kdj.d")
+qqline(residuals(fit.ets.kdj.d))
+
+```
+
+Residuals conform to normality.
+
+### Comparison between actual value and forecast result 
+```{r, fig.height=9, fig.width=10}
+# par(mfrow = c(3,1))
+fc.ets.kdj.d <- forecast(fit.ets.kdj.d, 
+                             h = length(test.set.kdj.d), 
+                            level = c(80,95))
+
+
+plot(fc.ets.kdj.d, ylim = c(5, 95),
+     type = "o", plot.conf = FALSE, shaded = FALSE, pi.col = "purple",
+     axes = FALSE, main = "ETS model of kdj.d", xlab = "")
+lines(test.set.kdj.d, type = "o",col = "red")
+
+axis(1, 
+     at = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+      labels = FALSE)
+
+text(seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+     par("usr")[3] - 250, 
+     labels = original.data[seq(tsp(close.price)[1], 
+                                tsp(close.price)[2], 10), 1], 
+     srt = 45, 
+     pos = 1, 
+     xpd = TRUE)
+
+axis(2, at = seq(5, 95, 10),
+    labels = seq(5, 95, 10), las = 1) 
+               
+box()
+
+abline(v = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(5, 95, 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+```
+
+## Comparison of accuracy of 2 Models 
+```{r}
+
+
+df.test.set <- rbind(accuracy(fc.arima.kdj.d, test.set.kdj.d)[2,],
+            accuracy(fc.ets.kdj.d, test.set.kdj.d)[2,])
+
+row.names(df.test.set) <- c("Arima","ETS")
+print(round(df.test.set, 2))
+
+
+
+```
+
+
+
+### Comparison between actual value and forecast result of true kd and estimated kd
+```{r, fig.height=9, fig.width=10}
+par(mfrow = c(2,1))
+fc.lagged.arima <- forecast(fit.lagged.arima, 
+                            xreg = cbind(test.set.kdj.k, 
+                                         test.set.kdj.d,
+        c(training.set.kdj.k[length(training.set.kdj.k)], test.set.kdj.k[-length(test.set.kdj.k)]),
+        c(training.set.kdj.d[length(training.set.kdj.d)], test.set.kdj.d[-length(test.set.kdj.d)])),
+                            h = length(test.set.close.price), 
+                            level = c(80,95))
+
+y.upper.limit <- signif(max(c(test.set.close.price,
+                    fc.lagged.arima$upper, 
+                    fc.lagged.arima$x)), digits = 2) + 100
+
+y.lower.limit <- signif(min(c(test.set.close.price,
+                    fc.lagged.arima$lower, 
+                    fc.lagged.arima$x)), digits = 2) - 100
+
+
+plot(fc.lagged.arima, ylim = c(y.lower.limit, y.upper.limit),
+     type = "o", plot.conf = TRUE, shaded = TRUE, pi.col = "purple",
+     axes = FALSE, main = "Lagged Regression with Arima errors", xlab = "")
+lines(test.set.close.price, type = "o",col = "red")
+
+axis(1, 
+     at = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+      labels = FALSE)
+
+text(seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+     par("usr")[3] - 250, 
+     labels = original.data[seq(tsp(close.price)[1], 
+                                tsp(close.price)[2], 10), 1], 
+     srt = 45, 
+     pos = 1, 
+     xpd = TRUE)
+
+axis(2, at = seq(y.lower.limit, y.upper.limit, 300),
+    labels = seq(y.lower.limit, y.upper.limit, 300), las = 1) 
+               
+box()
+
+abline(v = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(y.lower.limit, y.upper.limit, 300), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+estimated.kdj.k <- forecast(fit.arima.kdj.k, h = length(test.set.kdj.k))$mean
+estimated.kdj.d <- forecast(fit.arima.kdj.d, h = length(test.set.kdj.d))$mean
+
+fc.lagged.arima.estimated <- forecast(fit.lagged.arima, 
+                            xreg = cbind(estimated.kdj.k, 
+                                         estimated.kdj.d,
+        c(training.set.kdj.k[length(training.set.kdj.k)], estimated.kdj.k[-length(estimated.kdj.k)]),
+        c(training.set.kdj.d[length(training.set.kdj.d)], estimated.kdj.d[-length(estimated.kdj.d)])),
+                            h = length(test.set.close.price), 
+                            level = c(80,95))
+
+y.upper.limit <- signif(max(c(test.set.close.price,
+                    fc.lagged.arima.estimated$upper, 
+                    fc.lagged.arima.estimated$x)), digits = 2) + 100
+
+y.lower.limit <- signif(min(c(test.set.close.price,
+                    fc.lagged.arima.estimated$lower, 
+                    fc.lagged.arima.estimated$x)), digits = 2) - 100
+
+
+plot(fc.lagged.arima.estimated, ylim = c(y.lower.limit, y.upper.limit),
+     type = "o", plot.conf = TRUE, shaded = TRUE, pi.col = "purple",
+     axes = FALSE, main = "estimated Lagged Regression with Arima errors", xlab = "")
+lines(test.set.close.price, type = "o",col = "red")
+
+axis(1, 
+     at = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+      labels = FALSE)
+
+text(seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+     par("usr")[3] - 250, 
+     labels = original.data[seq(tsp(close.price)[1], 
+                                tsp(close.price)[2], 10), 1], 
+     srt = 45, 
+     pos = 1, 
+     xpd = TRUE)
+
+axis(2, at = seq(y.lower.limit, y.upper.limit, 300),
+    labels = seq(y.lower.limit, y.upper.limit, 300), las = 1) 
+               
+box()
+
+abline(v = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(y.lower.limit, y.upper.limit, 300), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+```
+
+### Comparison between actual value and forecast result of true kd and estimated kd for 5 weeks
+```{r, fig.height=9, fig.width=10}
+
+training.set.close.price <- window(close.price, start = 1, end = 240)
+test.set.close.price <- window(close.price, start = 241)
+
+training.set.kdj.k <- window(kdj.k, start = 1, end = 240)
+test.set.kdj.k <- window(kdj.k, start = 241)
+
+training.set.kdj.d <- window(kdj.d, start = 1, end = 240)
+test.set.kdj.d <- window(kdj.d, start = 241)
+
+reg.lagged.df <- cbind(training.set.kdj.k,
+                training.set.kdj.d,       
+                c(NA, training.set.kdj.k[-length(training.set.kdj.k)]),
+                c(NA, training.set.kdj.d[-length(training.set.kdj.d)]),
+                c(NA, NA, head(training.set.kdj.k, length(training.set.kdj.k) - 2)),
+                c(NA, NA, head(training.set.kdj.d, length(training.set.kdj.d) - 2)),
+                c(NA, NA, NA, head(training.set.kdj.k, length(training.set.kdj.k) - 3)),
+                c(NA, NA, NA, head(training.set.kdj.d, length(training.set.kdj.d) - 3)))
+
+
+fit.lagged.arima <- auto.arima(training.set.close.price, xreg = reg.lagged.df[, 1:4])
+
+par(mfrow = c(2,1))
+fc.lagged.arima <- forecast(fit.lagged.arima, 
+                            xreg = cbind(test.set.kdj.k[1:5], 
+                                         test.set.kdj.d[1:5],
+                                         c(training.set.kdj.k[length(training.set.kdj.k)], 
+                                           test.set.kdj.k[1:4]),
+                                         c(training.set.kdj.d[length(training.set.kdj.d)],
+                                           as.ts(test.set.kdj.d[1:4]))),
+                            h = 5, 
+                            level = c(80,95))
+
+y.upper.limit <- signif(max(c(test.set.close.price,
+                    fc.lagged.arima$upper, 
+                    fc.lagged.arima$x)), digits = 2) + 100
+
+y.lower.limit <- signif(min(c(test.set.close.price,
+                    fc.lagged.arima$lower, 
+                    fc.lagged.arima$x)), digits = 2) - 100
+
+
+plot(fc.lagged.arima, ylim = c(y.lower.limit, y.upper.limit),
+     type = "o", plot.conf = TRUE, shaded = TRUE, pi.col = "purple",
+     axes = FALSE, main = "Lagged Regression with Arima errors", xlab = "")
+lines(window(test.set.close.price, 
+             start = tsp(test.set.close.price)[1],
+             end = tsp(test.set.close.price)[1] + 4), 
+      type = "o",col = "red")
+
+axis(1, 
+     at = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+      labels = FALSE)
+
+text(seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+     par("usr")[3] - 250, 
+     labels = original.data[seq(tsp(close.price)[1], 
+                                tsp(close.price)[2], 10), 1], 
+     srt = 45, 
+     pos = 1, 
+     xpd = TRUE)
+
+axis(2, at = seq(y.lower.limit, y.upper.limit, 300),
+    labels = seq(y.lower.limit, y.upper.limit, 300), las = 1) 
+               
+box()
+
+abline(v = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(y.lower.limit, y.upper.limit, 300), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+fit.arima.kdj.k <- auto.arima(training.set.kdj.k)
+fit.arima.kdj.d <- auto.arima(training.set.kdj.d)
+
+estimated.kdj.k <- forecast(fit.arima.kdj.k, h = length(test.set.kdj.k))$mean
+estimated.kdj.d <- forecast(fit.arima.kdj.d, h = length(test.set.kdj.d))$mean
+
+fc.lagged.arima.estimated <- forecast(fit.lagged.arima, 
+                                      xreg = cbind(estimated.kdj.k[1:5], 
+                                                   estimated.kdj.d[1:5],
+                                                   c(training.set.kdj.k[length(training.set.kdj.k)], 
+                                                     estimated.kdj.k[1:4]),
+                                                   c(training.set.kdj.d[length(training.set.kdj.d)], 
+                                                     estimated.kdj.d[1:4])),
+                                      h = 5, 
+                                      level = c(80,95))
+
+y.upper.limit <- signif(max(c(test.set.close.price,
+                    fc.lagged.arima.estimated$upper, 
+                    fc.lagged.arima.estimated$x)), digits = 2) + 100
+
+y.lower.limit <- signif(min(c(test.set.close.price,
+                    fc.lagged.arima.estimated$lower, 
+                    fc.lagged.arima.estimated$x)), digits = 2) - 100
+
+
+plot(fc.lagged.arima.estimated, ylim = c(y.lower.limit, y.upper.limit),
+     type = "o", plot.conf = TRUE, shaded = TRUE, pi.col = "purple",
+     axes = FALSE, main = "estimated Lagged Regression with Arima errors", xlab = "")
+
+lines(window(test.set.close.price, 
+             start = tsp(test.set.close.price)[1],
+             end = tsp(test.set.close.price)[1] + 4), 
+      type = "o",col = "red")
+
+axis(1, 
+     at = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+      labels = FALSE)
+
+text(seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+     par("usr")[3] - 250, 
+     labels = original.data[seq(tsp(close.price)[1], 
+                                tsp(close.price)[2], 10), 1], 
+     srt = 45, 
+     pos = 1, 
+     xpd = TRUE)
+
+axis(2, at = seq(y.lower.limit, y.upper.limit, 300),
+    labels = seq(y.lower.limit, y.upper.limit, 300), las = 1) 
+               
+box()
+
+abline(v = seq(tsp(close.price)[1], tsp(close.price)[2], 10), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+
+abline(h = seq(y.lower.limit, y.upper.limit, 300), 
+       col = "springgreen4", 
+       lty = "dashed",
+       lwd = par("lwd"))
+```
+
+
+## Comparison of 5 weeks accuracy of 3 Models 
+```{r}
+fc.arima212.close.price <- forecast(fit.212.close.price, h = 5, 
+                              level = c(80,95))
+
+fc.arima.kdj <- forecast(fit.arima.kdj, 
+                         xreg = cbind(test.set.kdj.k[1:5], test.set.kdj.d[1:5]),
+                         h = 5, 
+                              level = c(80,95))
+
+fc.lagged.arima <- forecast(fit.lagged.arima, 
+                            xreg = cbind(test.set.kdj.k[1:5], 
+                                         test.set.kdj.d[1:5],
+                                         c(training.set.kdj.k[length(training.set.kdj.k)], 
+                                           test.set.kdj.k[1:4]),
+                                         c(training.set.kdj.d[length(training.set.kdj.d)],
+                                           as.ts(test.set.kdj.d[1:4]))),
+                            h = 5, 
+                            level = c(80,95))
+
+fc.lagged.arima.estimated <- forecast(fit.lagged.arima, 
+                                      xreg = cbind(estimated.kdj.k[1:5], 
+                                                   estimated.kdj.d[1:5],
+                                                   c(training.set.kdj.k[length(training.set.kdj.k)], 
+                                                     estimated.kdj.k[1:4]),
+                                                   c(training.set.kdj.d[length(training.set.kdj.d)], 
+                                                     estimated.kdj.d[1:4])),
+                                      h = 5, 
+                                      level = c(80,95))
+
+
+df.test.set <- rbind(accuracy(fc.arima212.close.price, test.set.close.price[1:5])[2,],
+            accuracy(fc.arima.kdj, test.set.close.price[1:5])[2,],
+            accuracy(fc.lagged.arima, test.set.close.price[1:5])[2,],
+            accuracy(fc.lagged.arima.estimated, test.set.close.price[1:5])[2,])
+
+row.names(df.test.set) <- c("Pure Arima","Reg Arima", "Lagged reg", "Lagged estimated reg")
+print(round(df.test.set, 2))
+
+
+
+```
+
+
+### function of Comparison between actual value and forecast result of true kdj.d and estimated kdj.d
+```{r, fig.height=9, fig.width=10}
+DrawForecastPlot <- function(arg.close.price, arg.kdj.k, arg.kdj.d, arg.forecast.period, 
+                             arg.ylabel.offset,
+                             arg.xlim.offset,
+                             arg.training.set.endpoint){
+        
+        training.set.close.price <- window(arg.close.price, start = 1, end = arg.training.set.endpoint)
+        test.set.close.price <- window(arg.close.price, start = arg.training.set.endpoint + 1,
+                                       end = arg.training.set.endpoint + arg.forecast.period)
+        
+        training.set.kdj.d <- window(arg.kdj.d, start = 1, end = arg.training.set.endpoint)
+        test.set.kdj.d <- window(arg.kdj.d, start = arg.training.set.endpoint + 1,
+                                       end = arg.training.set.endpoint + arg.forecast.period)        
+
+        reg.lagged.df <- cbind(training.set.kdj.d,       
+                               c(NA, training.set.kdj.d[-length(training.set.kdj.d)]),
+                               c(NA, NA, head(training.set.kdj.d, length(training.set.kdj.d) - 2)))
+        
+        fit.lagged.arima <- auto.arima(training.set.close.price, xreg = reg.lagged.df)
+        
+        par(mfrow = c(2,2))
+        fc.lagged.arima <- forecast(fit.lagged.arima, 
+                                    xreg = cbind(test.set.kdj.d,
+                                                 c(training.set.kdj.d[length(training.set.kdj.d)], 
+                                                   test.set.kdj.d[1:(arg.forecast.period - 1)]),
+                                                 c(training.set.kdj.d[length(training.set.kdj.d) - 1],
+                                                   training.set.kdj.d[length(training.set.kdj.d)],
+                                                   as.ts(test.set.kdj.d[1:(arg.forecast.period - 2)]))),
+                                    h = arg.forecast.period, 
+                                    level = c(80,95))
+
+
+        y.upper.limit <- signif(max(c(test.set.close.price,
+                                      fc.lagged.arima$upper,
+                                      tail(fc.lagged.arima$x, arg.xlim.offset))), digits = 2) + 100
+        # 
+        y.lower.limit <- signif(min(c(test.set.close.price,
+                                      fc.lagged.arima$lower,
+                                      tail(fc.lagged.arima$x, arg.xlim.offset))), digits = 2) - 100
+        
+        plot(window(arg.kdj.d, start = arg.training.set.endpoint - arg.xlim.offset, 
+                        end = arg.training.set.endpoint + arg.forecast.period), 
+             axes = FALSE,type = "l", ylim = c(5,95))
+        
+        axis(1, 
+             at = seq(arg.training.set.endpoint - arg.xlim.offset, 
+                      arg.training.set.endpoint + arg.forecast.period, 5), 
+             labels = TRUE)
+
+        axis(2, at = seq(5 ,95, 10), labels = TRUE, las = 1)
+              
+        abline(v = seq(arg.training.set.endpoint - arg.xlim.offset, 
+                       arg.training.set.endpoint + arg.forecast.period, 5), 
+               col = "springgreen4", 
+               lty = "dashed",
+               lwd = par("lwd"))        
+
+        abline(h = seq(5,95, 10), 
+               col = "springgreen4", 
+               lty = "dashed",
+               lwd = par("lwd"))
+        
+        lines(window(arg.kdj.d, start = arg.training.set.endpoint + 1, 
+                      end = arg.training.set.endpoint + arg.forecast.period),
+             type = "o", col = "red")
+        
+        lines(window(arg.kdj.k, start = arg.training.set.endpoint - arg.xlim.offset, 
+                     end = arg.training.set.endpoint + arg.forecast.period),
+              type = "o", col = "orange")
+        
+        box()
+        
+        plot(fc.lagged.arima, xlim = c(arg.training.set.endpoint - arg.xlim.offset, 
+                                       arg.training.set.endpoint + arg.forecast.period),
+             ylim = c(y.lower.limit, y.upper.limit),
+             type = "o", plot.conf = TRUE, shaded = TRUE, pi.col = "purple",
+             axes = FALSE, main = "Lagged Regression with Arima errors", xlab = "")
+        
+        lines(test.set.close.price, type = "o",col = "red") 
+              
+        axis(1, 
+             at = seq(arg.training.set.endpoint - arg.xlim.offset, 
+                      arg.training.set.endpoint + arg.forecast.period, 5), 
+             labels = TRUE)
+
+        # text(seq(arg.training.set.endpoint - arg.xlim.offset, 
+        #          arg.training.set.endpoint + arg.forecast.period, 5), 
+        #      par("usr")[3] - 250, 
+        #      labels = original.data[seq(arg.training.set.endpoint - arg.xlim.offset, 
+        #                                 arg.training.set.endpoint + arg.forecast.period, 5), 1], 
+        #      srt = 45, 
+        #      pos = 1, 
+        #      xpd = TRUE)
+                
+        axis(2, at = seq(y.lower.limit, y.upper.limit, length.out = 5),
+             labels = TRUE, las = 1) 
+        
+        box()
+        
+        abline(v = seq(arg.training.set.endpoint - arg.xlim.offset, 
+                      arg.training.set.endpoint + arg.forecast.period, 5), 
+               col = "springgreen4", 
+               lty = "dashed",
+               lwd = par("lwd"))
+        
+        abline(h = seq(y.lower.limit, y.upper.limit, length.out = 5), 
+               col = "springgreen4", 
+               lty = "dashed",
+               lwd = par("lwd"))
+        
+        fit.arima.kdj.d <- auto.arima(training.set.kdj.d)
+        
+        estimated.kdj.d <- forecast(fit.arima.kdj.d, h = length(test.set.kdj.d))$mean        
+
+        fc.lagged.arima.estimated <- forecast(fit.lagged.arima, 
+                                      xreg = cbind(estimated.kdj.d,
+                                                   c(training.set.kdj.d[length(training.set.kdj.d)], 
+                                                     estimated.kdj.d[1:(arg.forecast.period - 1)]),
+                                                   c(training.set.kdj.d[length(training.set.kdj.d) - 1],
+                                                     training.set.kdj.d[length(training.set.kdj.d)],
+                                                     estimated.kdj.d[1:(arg.forecast.period - 2)])),
+                                      h = arg.forecast.period, 
+                                      level = c(80,95))
+
+
+        plot(ts(c(arg.kdj.d[(arg.training.set.endpoint - arg.xlim.offset) : (arg.training.set.endpoint)], 
+               estimated.kdj.d), start = (arg.training.set.endpoint - arg.xlim.offset)), 
+               axes = FALSE,type = "l", ylim = c(5,95))
+        axis(1, 
+             at = seq(arg.training.set.endpoint - arg.xlim.offset, 
+                      arg.training.set.endpoint + arg.forecast.period, 5), 
+             labels = TRUE)
+
+        axis(2, at = seq(5,95, 10), labels = TRUE, las = 1)
+
+        abline(v = seq(arg.training.set.endpoint - arg.xlim.offset, 
+                       arg.training.set.endpoint + arg.forecast.period, 5), 
+               col = "springgreen4", 
+               lty = "dashed",
+               lwd = par("lwd"))                                
+        
+        abline(h = seq(5,95, 10), 
+               col = "springgreen4", 
+               lty = "dashed",
+               lwd = par("lwd"))       
+        
+        lines(ts(estimated.kdj.d, start = arg.training.set.endpoint + 1), type = "o", col = "darkblue")
+        box()
+        
+        plot(fc.lagged.arima.estimated, xlim = c(arg.training.set.endpoint - arg.xlim.offset, 
+                      arg.training.set.endpoint + arg.forecast.period), 
+             ylim = c(y.lower.limit, y.upper.limit),
+             type = "o", plot.conf = TRUE, shaded = TRUE, pi.col = "purple",
+             axes = FALSE, main = "estimated Lagged Regression with Arima errors", xlab = "")
+        
+        lines(test.set.close.price, type = "o",col = "red")
+
+        axis(1, 
+             at = seq(arg.training.set.endpoint - arg.xlim.offset, 
+                      arg.training.set.endpoint + arg.forecast.period, 5), 
+             labels = FALSE)
+        
+        text(seq(arg.training.set.endpoint - arg.xlim.offset, 
+                      arg.training.set.endpoint + arg.forecast.period, 5), 
+             par("usr")[3] - arg.ylabel.offset, 
+             labels = original.data[seq(arg.training.set.endpoint - arg.xlim.offset, 
+                      arg.training.set.endpoint + arg.forecast.period, 5), 1], 
+             srt = 45, 
+             pos = 1, 
+             xpd = TRUE)
+        
+        axis(2, at = seq(y.lower.limit, y.upper.limit, length.out = 5),
+             labels = TRUE, las = 1) 
+        
+        box()
+        
+        abline(v = seq(arg.training.set.endpoint - arg.xlim.offset, 
+                      arg.training.set.endpoint + arg.forecast.period, 5), 
+               col = "springgreen4", 
+               lty = "dashed",
+               lwd = par("lwd"))
+        
+        abline(h = seq(y.lower.limit, y.upper.limit, length.out = 5), 
+               col = "springgreen4", 
+               lty = "dashed",
+               lwd = par("lwd"))        
+}
+
+
+```
+
+
+```{r, fig.height=9, fig.width=10}
+DrawForecastPlot(close.price, kdj.k, kdj.d, arg.forecast.period = 4, 
+                 arg.ylabel.offset = 80,
+                 arg.xlim.offset = 100,
+                 arg.training.set.endpoint = 170)
+
+```
+        
+

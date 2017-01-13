@@ -16,8 +16,8 @@ output: html_document
 ## Library input & Data Input
 ```{r}
 suppressMessages(library(forecast))
-suppressMessages(library(quantmod))
-suppressMessages(library(TTR))
+# suppressMessages(library(quantmod))
+# suppressMessages(library(TTR))
 
 setwd("d://MyR//stock//")
 original.data <- read.csv("999999.csv")
@@ -303,7 +303,7 @@ ylim.lower <- min(c(test.set,
 plot(fc.ets.start250, ylim = c(ylim.lower, ylim.upper),
      type = "o", plot.conf = TRUE, shaded = TRUE, pi.col = "purple",
      axes = FALSE, main = "ets")
-lines(test.set, col = "red")
+lines(test.set, type = "o", col = "red")
 
 axis(1, at = seq(tsp(training.set.start250)[1], tsp(close.price)[2], 5), 
      labels = original.data[seq(tsp(training.set.start250)[1], tsp(close.price)[2], 5), 1])
@@ -325,7 +325,7 @@ plot(fit.naive.start250,  ylim = c(ylim.lower, ylim.upper),
      type = "o", plot.conf = TRUE, shaded = TRUE, pi.col = "purple",
      axes = FALSE,   main = "naive")
 
-lines(test.set, col = "red")
+lines(test.set, type = "o", col = "red")
 
 axis(1, at = seq(tsp(training.set.start250)[1], tsp(close.price)[2], 5), 
      labels = original.data[seq(tsp(training.set.start250)[1], tsp(close.price)[2], 5), 1])
@@ -351,7 +351,7 @@ plot(fit.lm.start250, ylim = c(ylim.lower, ylim.upper),
      type = "o", plot.conf = TRUE, shaded = TRUE, pi.col = "purple",
      axes = FALSE,main = "lm")
 
-lines(test.set, col = "red")
+lines(test.set, type = "o", col = "red")
 
 axis(1, at = seq(tsp(training.set.start250)[1], tsp(close.price)[2], 5), 
      labels = original.data[seq(250, tsp(close.price)[2], 5), 1])
@@ -373,7 +373,7 @@ plot(fit.holt.start250, ylim = c(ylim.lower, ylim.upper),
      type = "o", plot.conf = TRUE, shaded = TRUE, pi.col = "purple",
      axes = FALSE,  main = "holt")
 
-lines(test.set, col = "red")
+lines(test.set, type = "o", col = "red")
 
 axis(1, at = seq(tsp(training.set.start250)[1], tsp(close.price)[2], 5), 
      labels = original.data[seq(250, tsp(close.price)[2], 5), 1])
@@ -771,8 +771,11 @@ Holt model for data begining from 2016-3 is better.
 ### Accuracy Of Test Set
 
 ```{r}
-df.test.set.comparison <- rbind(accuracy(forecast(fit.holt.start250, h = length(test.set)), test.set)[2,],
-            accuracy(forecast(fit.ets.start240, h = length(test.set)), test.set)[2,])
+# df.test.set.comparison <- rbind(accuracy(forecast(fit.holt.start250, h = length(test.set)), test.set)[2,],
+#             accuracy(forecast(fit.ets.start240, h = length(test.set)), test.set)[2,])
+
+df.test.set.comparison <- rbind(accuracy(fit.holt.start250, test.set)[2,],
+            accuracy(fc.ets.start240, test.set)[2,])
 
 row.names(df.test.set.comparison) <- c("Holt 16/3", "ETS 15/12")
 print(round(df.test.set.comparison, 3))
@@ -869,6 +872,55 @@ Holt model for data begining from 2016-3 is better because its prediction interv
 * Holt model for data begining from 2016-3 is better, which can be used as a prediction tool
 * The period between 2016-1 and 2016-3 is special due to the policy change, which should be considered to be treated as a flag variable
 
+
+## Review of the accuracy of the rolling 5 weeks test set
+```{r, fig.height=7, fig.width=14}
+
+rolling.length = 5
+df.test.set.comparison <- NULL
+
+for(i in 5:0){
+        
+        set.boundary <- length(close.price) - i - rolling.length
+                
+        rolling.training.set <- 
+                window(close.price, start = 250, end = set.boundary)
+        
+        
+        rolling.test.set <- window(close.price, start = set.boundary + 1,
+                                   end = set.boundary + rolling.length)
+        
+        
+        rolling.fit.holt.5weeks <- holt(rolling.training.set, 
+                                        h = rolling.length,  
+                                        damped = TRUE,
+                                        level = c(80,95))
+        
+        df.test.set.comparison <- rbind(df.test.set.comparison,
+                                        accuracy(rolling.fit.holt.5weeks, rolling.test.set)[2,])
+        
+        row.names(df.test.set.comparison)[nrow(df.test.set.comparison)] <- paste0("holt",
+                as.character(original.data[set.boundary + 1 , 1]))
+        
+        rolling.fit.ets.5weeks <- forecast(ets(rolling.training.set),
+                                  h = rolling.length,
+                                  level = c(80,95))
+
+        df.test.set.comparison <- rbind(df.test.set.comparison,
+                                        accuracy(rolling.fit.ets.5weeks, rolling.test.set)[2,])
+
+        row.names(df.test.set.comparison)[nrow(df.test.set.comparison)] <- paste0("ets",
+                as.character(original.data[set.boundary + 1 , 1]))
+
+
+        }
+
+
+print(round(df.test.set.comparison, 2))
+
+```
+
+
 ## Review of the prediction of the last 5 weeks
 ```{r, fig.height=7, fig.width=14}
 
@@ -963,7 +1015,9 @@ abline(h = seq(ylim.lower.last5weeks, ylim.upper.last5weeks, 50),
 
 ```
 
-The actual values of the last 5 weeks are almost in the 80% prediction interval of the prediction in 2016-9-30 , and all in the 95% prediction interval. 
+
+
+
 
 ## Review of the prediction of the last week
 ```{r, fig.height=7, fig.width=14}
@@ -1130,4 +1184,4 @@ summary(refined.fit.ets)
 
 ```
 
-The 80% prediction interval of stock index of the next week is [3160, 3300]. So the possibility of the event that stock index is larger than 3160 is 90% and the possibility of the event that stock index is larger than 3300 is 10%, which can be treated as one type of condition of buying and selling.  
+The 80% prediction interval of stock index of the next week is [XXXX, XXXX]. So the possibility of the event that stock index is larger than XXXX is 90% and the possibility of the event that stock index is larger than XXXX is 10%, which can be treated as one type of condition of buying and selling.  

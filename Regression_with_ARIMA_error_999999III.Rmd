@@ -1,0 +1,413 @@
+---
+title: "ARIMA Prediction Of Stock 999999"
+author: "Wu Wei"
+date: "2017-1-4"
+output: html_document
+---
+
+## Synopsis
+
+
+## Pure Arima Modelling
+### Library input & Data Input
+```{r}
+rm(list = ls())
+suppressMessages(library(forecast))
+
+setwd("d://MyR//stock//")
+original.data <- read.csv("goldmonthly.csv")
+# (original.data)
+
+close.price <- as.ts(original.data[,5])
+# volume <- as.ts(original.data[,6])
+kdj.k <- as.ts(original.data[,7])
+kdj.d <- as.ts(original.data[,8])
+
+
+```
+
+
+
+
+```{r, fig.height=9, fig.width=10}
+DrawKDJPlot <- function(arg.kdj.k, arg.kdj.d, 
+                             arg.training.set.endpoint, arg.forecast.period){
+        
+
+        training.set.kdj.k <- window(arg.kdj.k, start = 1, end = arg.training.set.endpoint)
+        test.set.kdj.k <- window(arg.kdj.k, start = arg.training.set.endpoint + 1,
+                                       end = arg.training.set.endpoint + arg.forecast.period)
+        
+        training.set.kdj.d <- window(arg.kdj.d, start = 1, end = arg.training.set.endpoint)
+        test.set.kdj.d <- window(arg.kdj.d, start = arg.training.set.endpoint + 1,
+                                       end = arg.training.set.endpoint + arg.forecast.period)        
+
+
+        par(mfrow = c(2,1))
+
+
+        fit.arima.kdj.k <- auto.arima(training.set.kdj.k)
+        fit.arima.kdj.d <- auto.arima(training.set.kdj.d)
+        
+        estimated.kdj.k <- forecast(fit.arima.kdj.k, h = length(test.set.kdj.k))
+        estimated.kdj.d <- forecast(fit.arima.kdj.d, h = length(test.set.kdj.d))        
+
+        plot(estimated.kdj.k, type = "o")
+        lines(test.set.kdj.k, col = "red", type = "o")
+        
+        plot(estimated.kdj.d, type = "o")
+        lines(test.set.kdj.d, col = "red", type = "o")
+        
+}
+
+
+```
+
+```{r, fig.height=9, fig.width=10}
+DrawKDJPlot(kdj.k, kdj.d, arg.training.set.endpoint = 203, arg.forecast.period = 3)
+
+```
+
+        
+
+
+
+```{r, fig.height=9, fig.width=10}
+CompareAccuracy <- function(arg.object, 
+                            arg.forecast.period,
+                            arg.training.set.endpoint, 
+                            arg.comparison.period,
+                            arg.flag,
+                            arg.pdq.df,
+                            arg.stepwise){
+        
+        training.set.object.1 <- window(arg.object, start = 1, 
+                                             end = arg.training.set.endpoint)
+        
+        test.set.object.1 <- window(arg.object, start = arg.training.set.endpoint + 1,
+                                         end = arg.training.set.endpoint + arg.forecast.period)
+        
+        if(arg.flag == 0){
+        
+                if(arg.stepwise == FALSE){
+
+                        fit.arima.object.1 <- auto.arima(training.set.object.1)  
+                }else{
+ 
+                        fit.arima.object.1 <- auto.arima(training.set.object.1,
+                                                         stepwise = FALSE,
+                                                         approximation = FALSE)
+                }
+ 
+        }else{
+
+                if(arg.pdq.df$newdrift[1] == 1){
+                        fit.arima.object.1 <- Arima(training.set.object.1, order = c(arg.pdq.df$newp[1],
+                                                                                               arg.pdq.df$newd[1],
+                                                                                               arg.pdq.df$newq[1]),
+                                                         include.drift = TRUE)                        
+                }else{
+                        
+                        fit.arima.object.1 <- Arima(training.set.object.1, order = c(arg.pdq.df$newp[1],
+                                                                                               arg.pdq.df$newd[1],
+                                                                                               arg.pdq.df$newq[1]))        
+                }
+                
+        }
+        
+        fc.arima.object.1 <- forecast(fit.arima.object.1, h = length(test.set.object.1), 
+                                           level = c(80,95))
+        
+        df.accuracy <- accuracy(fc.arima.object.1, test.set.object.1)
+        
+        if("drift" %in% names(fit.arima.object.1$coef)){
+
+                result <- t(array(c(arg.training.set.endpoint, 
+                                    fit.arima.object.1$arma[c(1,6,2)],
+                                    df.accuracy[2,],
+                                    1), 
+                                  dim = c(13,1)))                                
+        }else{
+
+                result <- t(array(c(arg.training.set.endpoint, 
+                                    fit.arima.object.1$arma[c(1,6,2)],
+                                    df.accuracy[2,],
+                                    0), 
+                                  dim = c(13,1)))                
+        }
+
+        
+        col.names.accuracy <- colnames(df.accuracy)
+        
+
+        for(i in 1:arg.comparison.period){
+
+                end.point2 <- arg.training.set.endpoint + i
+                training.set.object.2 <- window(arg.object, start = 1, end = end.point2)
+                test.set.object.2 <- window(arg.object, start = end.point2 + 1,
+                                                 end = end.point2 + arg.forecast.period)
+
+                if(arg.flag == 0){
+
+                        if(arg.stepwise == FALSE){
+
+                                fit.arima.object.2 <- auto.arima(training.set.object.2)     
+                        }else{
+        
+                                fit.arima.object.2 <- auto.arima(training.set.object.2,
+                                                                 stepwise = FALSE,
+                                                                 approximation = FALSE)
+                        }
+        
+                }else{
+                        if(arg.pdq.df$newdrift[1 + i] == 1){
+        
+                                fit.arima.object.2 <- Arima(training.set.object.2, order = c(arg.pdq.df$newp[1 + i],
+                                                                                                       arg.pdq.df$newd[1 + i],
+                                                                                                       arg.pdq.df$newq[1 + i]),
+                                                                 include.drift = TRUE)                        
+                        }else{
+                        
+                                fit.arima.object.2 <- Arima(training.set.object.2, order = c(arg.pdq.df$newp[1 + i],
+                                                                                       arg.pdq.df$newd[1 + i],
+                                                                                       arg.pdq.df$newq[1 + i]))        
+                        }
+                        
+                }
+
+                fc.arima.object.2 <- forecast(fit.arima.object.2, h = length(test.set.object.2),
+                                                   level = c(80,95))
+
+                if("drift" %in% names(fit.arima.object.2$coef)){
+
+                        result2 <- t(array(c(arg.training.set.endpoint + i,
+                                            fit.arima.object.2$arma[c(1,6,2)],
+                                            accuracy(fc.arima.object.2, test.set.object.2)[2,],
+                                            1),
+                                          dim = c(13,1)))
+                }else{
+
+                        result2 <- t(array(c(arg.training.set.endpoint + i,
+                                            fit.arima.object.2$arma[c(1,6,2)],
+                                            accuracy(fc.arima.object.2, test.set.object.2)[2,],
+                                            0),
+                                          dim = c(13,1)))
+                }
+
+                result <- rbind(result, result2)
+
+        }
+
+        df.result <- data.frame(result)
+        colnames(df.result) <- c("seq", "p","d","q", col.names.accuracy, "drift")
+        # View(df.result)
+        
+        if(arg.flag == 0){
+                return(df.result)        
+        }else{
+                return(cbind(arg.pdq.df, df.result[,-(1:4)]))
+        }
+                        
+}
+
+
+```
+
+
+```{r}
+training.set.endpoint <- 300
+
+comparison.period <- 20
+
+result <- CompareAccuracy(kdj.d, 
+                          arg.forecast.period = 4,
+                          arg.training.set.endpoint = training.set.endpoint, 
+                          arg.comparison.period = comparison.period,
+                          arg.flag = 0,
+                          arg.pdq.df = NULL,
+                          arg.stepwise = FALSE)
+
+# result[,c(14:17)] <- result[,c(2:4,13)]
+# 
+# colnames(result)[c(14:17)] <- c("newp","newd","newq","newdrift")
+
+# result <- result[,c(1:4,13,5:12,14:17)]
+
+result.stepwise <- CompareAccuracy(kdj.d, 
+                          arg.forecast.period = 4,
+                          arg.training.set.endpoint = training.set.endpoint, 
+                          arg.comparison.period = comparison.period,
+                          arg.flag = 0,
+                          arg.pdq.df = NULL,
+                          arg.stepwise = TRUE)
+
+
+cbind(result, result.stepwise)[,c(1:4, 13, 6, 14:17,26,19 )]
+
+mean(cbind(result, result.stepwise)[,6])
+mean(cbind(result, result.stepwise)[,19])
+```
+
+
+
+```{r}
+
+# result$newp[1:23] <- 2
+# result$newq[1:23] <- 1
+
+# result$newd[5:12] <- 2
+# result$newq <- 0
+#  
+# result$newp[13:14] <- 0
+# result$newd[13:14] <- 1
+# result$newq[13:14] <- 1
+# result$newdrift[13:14] <- 0
+# 
+# result$newp[31:47] <- 0
+# result$newd[31:47] <- 1
+# result$newq[31:47] <- 1
+
+```
+
+```{r}
+
+second.result <- CompareAccuracy(kdj.d, 
+                          arg.forecast.period = 4,
+                          arg.training.set.endpoint = 240, 
+                          arg.comparison.period = 20,
+                          arg.flag = 1,
+                          arg.pdq.df = result)
+
+(second.result[,c(1:4, 7, 14:16, 19)])
+
+mean(second.result[,7])
+mean(second.result[,19])
+```
+
+
+```{r, fig.height=9, fig.width=10}
+DrawPlot <- function(arg.object, arg.training.set.endpoint, 
+                             arg.forecast.period, arg.pdq.df){
+        
+
+        training.set.object <- window(arg.object, start = 1, end = arg.training.set.endpoint)
+        test.set.object <- window(arg.object, start = arg.training.set.endpoint + 1,
+                                       end = arg.training.set.endpoint + arg.forecast.period)        
+
+        fit.arima.object <- auto.arima(training.set.object)
+        
+        fc.object <- forecast(fit.arima.object, h = arg.forecast.period)        
+
+        rownum <- as.integer(row.names(arg.pdq.df[arg.pdq.df$seq == arg.training.set.endpoint,]))
+        
+        # browser()
+        if(arg.pdq.df$newdrift[rownum] == 1){
+                
+                fit.arima.object.manual <- Arima(training.set.object, order = c(arg.pdq.df$newp[rownum],
+                                                                                            arg.pdq.df$newd[rownum],
+                                                                                            arg.pdq.df$newq[rownum]),
+                                                      include.drift = TRUE)
+        }else{
+                
+                fit.arima.object.manual <- Arima(training.set.object, order = c(arg.pdq.df$newp[rownum],
+                                                                                            arg.pdq.df$newd[rownum],
+                                                                                            arg.pdq.df$newq[rownum]))
+        }
+        
+                
+        fc.object.manual <- forecast(fit.arima.object.manual, h = arg.forecast.period)        
+        
+        par(mfrow = c(2,1))
+        plot(fc.object, type = "o", 
+             xlim = c(arg.training.set.endpoint - 80, arg.training.set.endpoint + arg.forecast.period))
+        lines(test.set.object, col = "red", type = "o")
+        
+        plot(fc.object.manual, type = "o",
+             xlim = c(arg.training.set.endpoint - 80, arg.training.set.endpoint + arg.forecast.period))
+        lines(test.set.object, col = "red", type = "o")
+}
+
+
+```
+
+```{r, fig.height=9, fig.width=10}
+DrawPlot(kdj.d, arg.forecast.period = 4, second.result, arg.training.set.endpoint = 219)
+```
+
+```{r}
+result.kdj.k <- CompareAccuracy(kdj.k, 
+                          arg.forecast.period = 4,
+                          arg.training.set.endpoint = 210, 
+                          arg.comparison.period = 75,
+                          arg.flag = 0,
+                          arg.pdq.df = NULL)
+
+result.kdj.k[,c(14:17)] <- result.kdj.k[,c(2:4,13)]
+
+colnames(result.kdj.k)[c(14:17)] <- c("newp","newd","newq","newdrift")
+
+result.kdj.k <- result.kdj.k[,c(1:4,13,5:12,14:17)]
+```
+
+```{r}
+
+# result.kdj.k$newp[3:10] <- 3
+# result.kdj.k$newp[9:13] <- 1
+# 
+# # result$newd[5:12] <- 2
+# result.kdj.k$newq[9:13] <- 0
+#  
+# result$newp[13:14] <- 0
+# result$newd[13:14] <- 1
+# result$newq[13:14] <- 1
+# result$newdrift[13:14] <- 0
+# 
+# result$newp[31:47] <- 0
+# result$newd[31:47] <- 1
+# result$newq[31:47] <- 1
+
+```
+
+```{r}
+
+second.result.kdj.k <- CompareAccuracy(kdj.k, 
+                          arg.forecast.period = 4,
+                          arg.training.set.endpoint = 210, 
+                          arg.comparison.period = 75,
+                          arg.flag = 1,
+                          arg.pdq.df = result.kdj.k)
+
+(second.result.kdj.k[,c(1:4, 7, 14:16, 19)])
+
+mean(second.result.kdj.k[,7])
+mean(second.result.kdj.k[,19])
+```
+
+```{r, fig.height=9, fig.width=10}
+DrawPlot(kdj.k, 
+         arg.forecast.period = 4, 
+         second.result.kdj.k, 
+         arg.training.set.endpoint = 210)
+```
+
+```{r}
+result <- CompareAccuracy(kdj.d, 
+                          arg.forecast.period = 4,
+                          arg.training.set.endpoint = 200, 
+                          arg.comparison.period = 100,
+                          arg.flag = 0,
+                          arg.pdq.df = NULL)
+
+result.kdj.k <- CompareAccuracy(kdj.k, 
+                          arg.forecast.period = 4,
+                          arg.training.set.endpoint = 200, 
+                          arg.comparison.period = 100,
+                          arg.flag = 0,
+                          arg.pdq.df = NULL)
+
+compare.result <- cbind(result, result.kdj.k)[,c(1:4, 6, 13:17,19, 26)]
+
+mean(compare.result[,5])
+mean(compare.result[,11])
+```
+
