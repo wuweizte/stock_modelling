@@ -1,0 +1,282 @@
+---
+title: "ARIMA Prediction Of Stock 999999"
+author: "Wu Wei"
+date: "2017-1-4"
+output: html_document
+---
+
+## Synopsis
+
+
+## Pure Arima Modelling
+### Library input & Data Input
+```{r}
+
+suppressMessages(library(forecast))
+suppressMessages(library(parallel))
+suppressMessages(library(doParallel))
+
+```
+
+```{r}
+rm(list = ls())
+
+setwd("d://MyR//stock//")
+
+weekly.data <- read.csv("goldweekly.csv")
+weekly.close.price <- as.ts(weekly.data[,5])
+weekly.kdj.k <- as.ts(weekly.data[,7])
+weekly.kdj.d <- as.ts(weekly.data[,8])
+
+
+monthly.data <- read.csv("goldmonthly.csv")
+monthly.close.price <- as.ts(monthly.data[,5])
+monthly.kdj.k <- as.ts(monthly.data[,7])
+monthly.kdj.d <- as.ts(monthly.data[,8])
+
+```
+
+```{r}
+# names(weekly.data)
+
+weekly.data$month <- substr(weekly.data$Time, start = 1, stop = 6)
+
+monthly.data$month <- substr(monthly.data$Time, start = 1, stop = 6)
+
+monthly.data <- cbind(monthly.data,
+                c(NA, monthly.data$KDJ.K[-length(monthly.data$KDJ.K)]),
+                c(NA, monthly.data$KDJ.D[-length(monthly.data$KDJ.D)]),
+                c(NA, NA, head(monthly.data$KDJ.K, length(monthly.data$KDJ.K) - 2)),
+                c(NA, NA, head(monthly.data$KDJ.D, length(monthly.data$KDJ.D) - 2)),
+                c(NA, NA, NA, head(monthly.data$KDJ.K, length(monthly.data$KDJ.K) - 3)),
+                c(NA, NA, NA, head(monthly.data$KDJ.D, length(monthly.data$KDJ.D) - 3)),
+                
+                c(NA, monthly.data$KDJ.K[-length(monthly.data$KDJ.K)] - monthly.data$KDJ.D[-length(monthly.data$KDJ.D)]),
+                
+                c(NA, NA, head(monthly.data$KDJ.K, length(monthly.data$KDJ.K) - 2) - 
+                          head(monthly.data$KDJ.D, length(monthly.data$KDJ.D) - 2)),
+                
+                c(NA, NA, NA, head(monthly.data$KDJ.K, length(monthly.data$KDJ.K) - 3) - 
+                          head(monthly.data$KDJ.D, length(monthly.data$KDJ.D) - 3)))
+
+names(monthly.data)[(length(monthly.data) - 8) : length(monthly.data)] <- c("last.month.KDJ.K", "last.month.KDJ.D", 
+                                 "last.2.month.KDJ.K", "last.2.month.KDJ.D",
+                                 "last.3.month.KDJ.K", "last.3.month.KDJ.D",
+                                 "last.month.KDJ.KD.diff",
+                                 "last.2.month.KDJ.KD.diff",
+                                 "last.3.month.KDJ.KD.diff")
+
+added.monthly.data <- merge(weekly.data, monthly.data, by.x = "month", by.y = "month")
+
+added.monthly.data <- added.monthly.data[,c(2:9, 18:26)]
+
+# names(added.monthly.data)[9 : 10] <- c("monthly.KDJ.K", "monthly.KDJ.D")
+
+names(added.monthly.data)[1 : 8] <- substr(names(added.monthly.data)[1 : 8], 1,
+                                           nchar(names(added.monthly.data)[1 : 8]) - 2)
+
+added.weekly.data <- added.monthly.data[order(added.monthly.data$Time),]
+
+added.weekly.data <- added.weekly.data[(nrow(added.weekly.data) - 400) : nrow(added.weekly.data),] 
+```
+
+
+
+```{r, fig.height=8, fig.width=10}
+cluster <- makeCluster(detectCores() - 1)
+registerDoParallel(cluster)
+
+```
+
+```{r}
+fit.pure.arima <- auto.arima(added.weekly.data$KDJ.D,
+                             max.order = 9,
+                             stepwise = FALSE, approximation = FALSE)
+
+fit.15 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, 15],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.15.16 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, c(15,16)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.15.16.17 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, c(15,16,17)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.pure.arima$aicc
+
+fit.15$aicc
+
+fit.15.16$aicc
+
+fit.15.16.17$aicc
+
+fit.10.15 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, c(10,15)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.10.15$aicc
+```
+
+```{r}
+fit.9 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, 9],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.9.11 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, c(9,11)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.9.11.13 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, c(9,11,13)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.10 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, 10],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.10.12 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, c(10,12)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.10.12.14 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, c(10,12,14)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.12 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, c(12)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.12.14 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, c(12:14)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.14 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, c(14)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.9.10 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, 9:10],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.9.12 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, 9:12],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.9.14 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, 9:14],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.11.12 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, 11:12],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.11.14 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, 11:14],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.13.14 <- auto.arima(added.weekly.data$KDJ.D, 
+                     xreg = added.weekly.data[, 13:14],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+
+fit.pure.arima$aicc
+
+fit.9$aicc
+
+fit.9.11$aicc
+
+fit.9.11.13$aicc
+
+fit.10$aicc
+
+fit.10.12$aicc
+
+fit.10.12.14$aicc
+
+fit.12$aicc
+
+fit.12.14$aicc
+
+fit.14$aicc
+
+fit.9.10$aicc
+
+fit.9.12$aicc
+
+fit.9.14$aicc
+
+fit.11.12$aicc
+
+fit.11.14$aicc
+
+fit.13.14$aicc
+
+```
+
+
+
+
+```{r}
+
+
+# Box.test(residuals(fit.9.12), lag=10, fitdf=3)
+# Box.test(residuals(fit.9.12), lag=10, fitdf=3, type = "Lj")
+
+```
+
+
+```{r}
+training.set.endpoint <- 250
+
+comparison.period <- 30
+
+result.lambda <- CompareAccuracy(added.weekly.data$KDJ.D, 
+                          arg.forecast.period = 5,
+                          arg.training.set.endpoint = training.set.endpoint, 
+                          arg.comparison.period = comparison.period,
+                          arg.flag = 0,
+                          arg.pdq.df = NULL,
+                          arg.stepwise = TRUE,
+                          arg.maxorder = 9,
+                          arg.xreg = NULL,
+                          arg.lambda.flag = TRUE)
+
+result.xreg.lambda <- CompareAccuracy(added.weekly.data$KDJ.D, 
+                          arg.forecast.period = 5,
+                          arg.training.set.endpoint = training.set.endpoint, 
+                          arg.comparison.period = comparison.period,
+                          arg.flag = 0,
+                          arg.pdq.df = NULL,
+                          arg.stepwise = TRUE,
+                          arg.maxorder = 9,
+                          arg.xreg = as.data.frame(added.weekly.data[, c(14)]),
+                          arg.lambda.flag = TRUE)
+
+summarized.result.lambda <- cbind(result.lambda, 
+                                  result.xreg.lambda)[,c(1:4, 13, 6, 14:19,28,21,29)]
+
+load("result.RData")
+summarized.result <- cbind(result, result.xreg)[,c(1:4, 13, 6, 14:18,27,20,28)]
+
+
+final.result <- cbind(summarized.result[1:30,], summarized.result.lambda[1:30,])
+
+View(final.result)
+# (summarized.result[order(summarized.result$RMSE.2 - summarized.result$RMSE.1),])
+
+
+mean(final.result[,6])
+mean(final.result[,13])
+mean(final.result[,20])
+mean(final.result[,28])
+
+
+```
+        
+```{r, fig.height=9, fig.width=10}
+stopCluster(cluster)
+
+```

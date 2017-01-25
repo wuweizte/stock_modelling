@@ -26,8 +26,11 @@ kdj.d <- as.ts(original.data[,8])
 
 ```
 
-
-
+```{r, fig.height=9, fig.width=10}
+BoxCox.lambda(kdj.d)
+BoxCox.lambda(kdj.k)
+BoxCox.lambda(close.price)
+```
 
 ```{r, fig.height=9, fig.width=10}
 DrawKDJPlot <- function(arg.kdj.k, arg.kdj.d, 
@@ -79,7 +82,10 @@ CompareAccuracy <- function(arg.object,
                             arg.comparison.period,
                             arg.flag,
                             arg.pdq.df,
-                            arg.stepwise){
+                            arg.stepwise,
+                            arg.maxorder,
+                            arg.xreg,
+                            arg.lambda.flag){
         
         training.set.object.1 <- window(arg.object, start = 1, 
                                              end = arg.training.set.endpoint)
@@ -87,53 +93,168 @@ CompareAccuracy <- function(arg.object,
         test.set.object.1 <- window(arg.object, start = arg.training.set.endpoint + 1,
                                          end = arg.training.set.endpoint + arg.forecast.period)
         
+        # browser()
+        xreg.object.1 <- arg.xreg[1:arg.training.set.endpoint,]
+        xreg.object.test.1 <- arg.xreg[(arg.training.set.endpoint + 1):
+                                               (arg.training.set.endpoint + arg.forecast.period),]
+        
         if(arg.flag == 0){
         
                 if(arg.stepwise == FALSE){
 
-                        fit.arima.object.1 <- auto.arima(training.set.object.1)  
+                        if(is.null(xreg.object.1)){
+                                if(arg.lambda.flag == FALSE){
+                                        fit.arima.object.1 <- auto.arima(training.set.object.1)                                                  
+                                }else{
+                                        
+                                        fit.arima.object.1 <- auto.arima(training.set.object.1,
+                                                                         lambda = BoxCox.lambda(training.set.object.1))
+                                }
+
+                        }else{
+                                if(arg.lambda.flag == FALSE){
+                                        fit.arima.object.1 <- auto.arima(training.set.object.1, xreg = xreg.object.1)                                                                     
+                                }else{
+                                        fit.arima.object.1 <- auto.arima(training.set.object.1, 
+                                                                         xreg = xreg.object.1,
+                                                                         lambda = BoxCox.lambda(training.set.object.1))                             
+                                }
+     
+                        }
+
                 }else{
  
-                        fit.arima.object.1 <- auto.arima(training.set.object.1,
-                                                         stepwise = FALSE,
-                                                         approximation = FALSE)
+                        if(is.null(xreg.object.1)){
+                                if(arg.lambda.flag == FALSE){
+                                        fit.arima.object.1 <- auto.arima(training.set.object.1,
+                                                                         max.order = arg.maxorder,
+                                                                         stepwise = FALSE,
+                                                                         approximation = FALSE)                                        
+                                }else{
+                                        fit.arima.object.1 <- auto.arima(training.set.object.1,
+                                                                         max.order = arg.maxorder,
+                                                                         stepwise = FALSE,
+                                                                         approximation = FALSE,
+                                                                         lambda = BoxCox.lambda(training.set.object.1))
+                                }
+
+                        }else{
+                                if(arg.lambda.flag == FALSE){
+                                        fit.arima.object.1 <- auto.arima(training.set.object.1,
+                                                                         max.order = arg.maxorder,
+                                                                         stepwise = FALSE,
+                                                                         approximation = FALSE, xreg = xreg.object.1)                
+                                }else{
+                                        fit.arima.object.1 <- auto.arima(training.set.object.1,
+                                                                         max.order = arg.maxorder,
+                                                                         stepwise = FALSE,
+                                                                         approximation = FALSE, xreg = xreg.object.1,
+                                                                         lambda = BoxCox.lambda(training.set.object.1))                
+                                }
+                                
+                        }
+                        
                 }
  
         }else{
 
                 if(arg.pdq.df$newdrift[1] == 1){
-                        fit.arima.object.1 <- Arima(training.set.object.1, order = c(arg.pdq.df$newp[1],
-                                                                                               arg.pdq.df$newd[1],
-                                                                                               arg.pdq.df$newq[1]),
-                                                         include.drift = TRUE)                        
-                }else{
+                        if(is.null(xreg.object.1)){
+                                if(arg.lambda.flag == FALSE){
+                                        fit.arima.object.1 <- Arima(training.set.object.1, order = c(arg.pdq.df$newp[1],
+                                                                                                     arg.pdq.df$newd[1],
+                                                                                                     arg.pdq.df$newq[1]),
+                                                                    include.drift = TRUE)                                  
+                                }else{
+                                        fit.arima.object.1 <- Arima(training.set.object.1, order = c(arg.pdq.df$newp[1],
+                                                                                             arg.pdq.df$newd[1],
+                                                                                             arg.pdq.df$newq[1]),
+                                                            include.drift = TRUE,
+                                                            lambda = BoxCox.lambda(training.set.object.1))                          
+                                }
+                                
+                        }else{
+                                if(arg.lambda.flag == FALSE){
+                                        fit.arima.object.1 <- Arima(training.set.object.1, order = c(arg.pdq.df$newp[1],
+                                                                                                     arg.pdq.df$newd[1],
+                                                                                                     arg.pdq.df$newq[1]),
+                                                                    include.drift = TRUE, xreg = xreg.object.1)                                                                        
+                                }else{
+                                        fit.arima.object.1 <- Arima(training.set.object.1, order = c(arg.pdq.df$newp[1],
+                                                                                                     arg.pdq.df$newd[1],
+                                                                                                     arg.pdq.df$newq[1]),
+                                                                    include.drift = TRUE, xreg = xreg.object.1,
+                                                                    lambda = BoxCox.lambda(training.set.object.1))                                
+                                }
+
+                        }
                         
-                        fit.arima.object.1 <- Arima(training.set.object.1, order = c(arg.pdq.df$newp[1],
-                                                                                               arg.pdq.df$newd[1],
-                                                                                               arg.pdq.df$newq[1]))        
+                        
+                }else{
+                        if(is.null(xreg.object.1)){
+                                if(arg.lambda.flag == FALSE){
+                                        fit.arima.object.1 <- Arima(training.set.object.1, order = c(arg.pdq.df$newp[1],
+                                                                                                     arg.pdq.df$newd[1],
+                                                                                                     arg.pdq.df$newq[1]))                                                        
+                                }else{
+                                        fit.arima.object.1 <- Arima(training.set.object.1, order = c(arg.pdq.df$newp[1],
+                                                                                                     arg.pdq.df$newd[1],
+                                                                                                     arg.pdq.df$newq[1]),
+                                                                    lambda = BoxCox.lambda(training.set.object.1))                
+                                }
+
+                                
+                        }else{
+                                if(arg.lambda.flag == FALSE){
+                                        fit.arima.object.1 <- Arima(training.set.object.1, order = c(arg.pdq.df$newp[1],
+                                                                                                     arg.pdq.df$newd[1],
+                                                                                                     arg.pdq.df$newq[1]), 
+                                                                    xreg = xreg.object.1)                                        
+                                }else{
+                                        fit.arima.object.1 <- Arima(training.set.object.1, order = c(arg.pdq.df$newp[1],
+                                                                                                     arg.pdq.df$newd[1],
+                                                                                                     arg.pdq.df$newq[1]), 
+                                                                    xreg = xreg.object.1,
+                                                                    lambda = BoxCox.lambda(training.set.object.1))                
+                                }
+                
+                        }
+                        
                 }
                 
         }
         
-        fc.arima.object.1 <- forecast(fit.arima.object.1, h = length(test.set.object.1), 
-                                           level = c(80,95))
+        if(is.null(xreg.object.test.1)){
+        
+                fc.arima.object.1 <- forecast(fit.arima.object.1, h = length(test.set.object.1))        
+        }else{
+                fc.arima.object.1 <- forecast(fit.arima.object.1, h = length(test.set.object.1), 
+                                           xreg = xreg.object.test.1)        
+        }
+        
         
         df.accuracy <- accuracy(fc.arima.object.1, test.set.object.1)
+        pvalue <- Box.test(residuals(fit.arima.object.1), lag=10, 
+                           fitdf=sum(fit.arima.object.1$arma[c(1,2)]))$p.value
         
         if("drift" %in% names(fit.arima.object.1$coef)){
 
                 result <- t(array(c(arg.training.set.endpoint, 
                                     fit.arima.object.1$arma[c(1,6,2)],
                                     df.accuracy[2,],
-                                    1), 
-                                  dim = c(13,1)))                                
+                                    1,
+                                    pvalue,
+                                    BoxCox.lambda(training.set.object.1)), 
+                                  dim = c(15,1)))                                
         }else{
 
                 result <- t(array(c(arg.training.set.endpoint, 
                                     fit.arima.object.1$arma[c(1,6,2)],
                                     df.accuracy[2,],
-                                    0), 
-                                  dim = c(13,1)))                
+                                    0,
+                                    pvalue,
+                                    BoxCox.lambda(training.set.object.1)), 
+                                  dim = c(15,1)))                
         }
 
         
@@ -147,51 +268,159 @@ CompareAccuracy <- function(arg.object,
                 test.set.object.2 <- window(arg.object, start = end.point2 + 1,
                                                  end = end.point2 + arg.forecast.period)
 
+                xreg.object.2 <- arg.xreg[1:end.point2,]
+                xreg.object.test.2 <- arg.xreg[(end.point2 + 1):
+                                                       (end.point2 + arg.forecast.period),]
+                
                 if(arg.flag == 0){
 
                         if(arg.stepwise == FALSE){
 
-                                fit.arima.object.2 <- auto.arima(training.set.object.2)     
+                                if(is.null(xreg.object.2)){
+                                        if(arg.lambda.flag == FALSE){
+                                                fit.arima.object.2 <- auto.arima(training.set.object.2)                                                     
+                                        }else{
+                                                fit.arima.object.2 <- auto.arima(training.set.object.2,
+                                                                                 lambda = BoxCox.lambda(training.set.object.2))     
+                                        }
+
+                                }else{
+                                        if(arg.lambda.flag == FALSE){
+                                                fit.arima.object.2 <- auto.arima(training.set.object.2, xreg = xreg.object.2)                   
+                                        }else{
+                                                fit.arima.object.2 <- auto.arima(training.set.object.2, xreg = xreg.object.2,
+                                                                                 lambda = BoxCox.lambda(training.set.object.2))           
+                                        }
+                                                                          
+                                }
+                                
                         }else{
         
-                                fit.arima.object.2 <- auto.arima(training.set.object.2,
-                                                                 stepwise = FALSE,
-                                                                 approximation = FALSE)
+                                if(is.null(xreg.object.2)){
+                                        if(arg.lambda.flag == FALSE){
+                                                fit.arima.object.2 <- auto.arima(training.set.object.2,
+                                                                                 max.order = arg.maxorder,
+                                                                                 stepwise = FALSE,
+                                                                                 approximation = FALSE)
+                                        }else{
+                                                fit.arima.object.2 <- auto.arima(training.set.object.2,
+                                                                                 max.order = arg.maxorder,
+                                                                                 stepwise = FALSE,
+                                                                                 approximation = FALSE,
+                                                                                 lambda = BoxCox.lambda(training.set.object.2))
+                                        }
+                                }else{
+                                        if(arg.lambda.flag == FALSE){
+                                                fit.arima.object.2 <- auto.arima(training.set.object.2,
+                                                                                 max.order = arg.maxorder,
+                                                                                 stepwise = FALSE,
+                                                                                 approximation = FALSE, xreg = xreg.object.2)                                                      }else{
+                                                  fit.arima.object.2 <- auto.arima(training.set.object.2,
+                                                                                   max.order = arg.maxorder,
+                                                                                   stepwise = FALSE,
+                                                                                   approximation = FALSE, xreg = xreg.object.2,
+                                                                                   lambda = BoxCox.lambda(training.set.object.2))                                                  }
+                                }
+
                         }
         
                 }else{
                         if(arg.pdq.df$newdrift[1 + i] == 1){
-        
-                                fit.arima.object.2 <- Arima(training.set.object.2, order = c(arg.pdq.df$newp[1 + i],
-                                                                                                       arg.pdq.df$newd[1 + i],
-                                                                                                       arg.pdq.df$newq[1 + i]),
-                                                                 include.drift = TRUE)                        
+                                if(is.null(xreg.object.2)){
+                                        if(arg.lambda.flag == FALSE){
+                                                fit.arima.object.2 <- Arima(training.set.object.2, order = c(arg.pdq.df$newp[1 + i],
+                                                                                                             arg.pdq.df$newd[1 + i],
+                                                                                                             arg.pdq.df$newq[1 + i]),
+                                                                            include.drift = TRUE)
+                                        }else{
+                                                fit.arima.object.2 <- Arima(training.set.object.2, order = c(arg.pdq.df$newp[1 + i],
+                                                                                                             arg.pdq.df$newd[1 + i],
+                                                                                                             arg.pdq.df$newq[1 + i]),
+                                                                            include.drift = TRUE,
+                                                                            lambda = BoxCox.lambda(training.set.object.2))
+                                        }
+                                }else{
+                                        if(arg.lambda.flag == FALSE){
+                                                fit.arima.object.2 <- Arima(training.set.object.2, order = c(arg.pdq.df$newp[1 + i],
+                                                                                                             arg.pdq.df$newd[1 + i],
+                                                                                                             arg.pdq.df$newq[1 + i]),
+                                                                            include.drift = TRUE, xreg = xreg.object.2)                                                                }else{
+                                                fit.arima.object.2 <- Arima(training.set.object.2, order = c(arg.pdq.df$newp[1 + i],
+                                                                                                             arg.pdq.df$newd[1 + i],
+                                                                                                             arg.pdq.df$newq[1 + i]),
+                                                                            include.drift = TRUE, xreg = xreg.object.2,
+                                                                            lambda = BoxCox.lambda(training.set.object.2))
+                                           } 
+                                }
+                                
                         }else{
                         
-                                fit.arima.object.2 <- Arima(training.set.object.2, order = c(arg.pdq.df$newp[1 + i],
-                                                                                       arg.pdq.df$newd[1 + i],
-                                                                                       arg.pdq.df$newq[1 + i]))        
+                                if(is.null(xreg.object.2)){
+
+                                        if(arg.lambda.flag == FALSE){
+                                                fit.arima.object.2 <- Arima(training.set.object.2, order = c(arg.pdq.df$newp[1 + i],
+                                                                                                             arg.pdq.df$newd[1 + i],
+                                                                                                             arg.pdq.df$newq[1 + i]))                                                            
+                                        }else{
+                                                fit.arima.object.2 <- Arima(training.set.object.2, order = c(arg.pdq.df$newp[1 + i],
+                                                                                                             arg.pdq.df$newd[1 + i],
+                                                                                                             arg.pdq.df$newq[1 + i]),
+                                                                            lambda = BoxCox.lambda(training.set.object.2))            
+                                        }
+                                         
+                                }else{
+                                        if(arg.lambda.flag == FALSE){
+                                                fit.arima.object.2 <- Arima(training.set.object.2, order = c(arg.pdq.df$newp[1 + i],
+                                                                                                             arg.pdq.df$newd[1 + i],
+                                                                                                             arg.pdq.df$newq[1 + i]),
+                                                                            xreg = xreg.object.2)                                                                                                
+                                        }else{
+                                                fit.arima.object.2 <- Arima(training.set.object.2, order = c(arg.pdq.df$newp[1 + i],
+                                                                                                             arg.pdq.df$newd[1 + i],
+                                                                                                             arg.pdq.df$newq[1 + i]),
+                                                                            xreg = xreg.object.2,
+                                                                            lambda = BoxCox.lambda(training.set.object.2))                                                
+                                        }
+
+                                }
+                                
+
                         }
                         
                 }
 
-                fc.arima.object.2 <- forecast(fit.arima.object.2, h = length(test.set.object.2),
-                                                   level = c(80,95))
+                # fc.arima.object.2 <- forecast(fit.arima.object.2, h = length(test.set.object.2),
+                #                                    xreg = xreg.object.test.2)
 
+                if(is.null(xreg.object.test.2)){
+                        
+                        fc.arima.object.2 <- forecast(fit.arima.object.2, h = length(test.set.object.2))        
+                }else{
+                        fc.arima.object.2 <- forecast(fit.arima.object.2, h = length(test.set.object.2), 
+                                                      xreg = xreg.object.test.2)        
+                }
+                
+                pvalue <- Box.test(residuals(fit.arima.object.2), lag=10, 
+                           fitdf=sum(fit.arima.object.2$arma[c(1,2)]))$p.value
+                
                 if("drift" %in% names(fit.arima.object.2$coef)){
 
                         result2 <- t(array(c(arg.training.set.endpoint + i,
                                             fit.arima.object.2$arma[c(1,6,2)],
                                             accuracy(fc.arima.object.2, test.set.object.2)[2,],
-                                            1),
-                                          dim = c(13,1)))
+                                            1,
+                                            pvalue,
+                                            BoxCox.lambda(training.set.object.2)),
+                                          dim = c(15,1)))
                 }else{
 
                         result2 <- t(array(c(arg.training.set.endpoint + i,
                                             fit.arima.object.2$arma[c(1,6,2)],
                                             accuracy(fc.arima.object.2, test.set.object.2)[2,],
-                                            0),
-                                          dim = c(13,1)))
+                                            0,
+                                            pvalue,
+                                            BoxCox.lambda(training.set.object.2)),
+                                          dim = c(15,1)))
                 }
 
                 result <- rbind(result, result2)
@@ -199,7 +428,7 @@ CompareAccuracy <- function(arg.object,
         }
 
         df.result <- data.frame(result)
-        colnames(df.result) <- c("seq", "p","d","q", col.names.accuracy, "drift")
+        colnames(df.result) <- c("seq", "p","d","q", col.names.accuracy, "drift", "pvalue","lambda")
         # View(df.result)
         
         if(arg.flag == 0){
@@ -217,7 +446,7 @@ CompareAccuracy <- function(arg.object,
 ```{r}
 training.set.endpoint <- 300
 
-comparison.period <- 20
+comparison.period <- 100
 
 result <- CompareAccuracy(kdj.d, 
                           arg.forecast.period = 4,
@@ -225,7 +454,8 @@ result <- CompareAccuracy(kdj.d,
                           arg.comparison.period = comparison.period,
                           arg.flag = 0,
                           arg.pdq.df = NULL,
-                          arg.stepwise = FALSE)
+                          arg.stepwise = FALSE,
+                          arg.maxorder = 5)
 
 # result[,c(14:17)] <- result[,c(2:4,13)]
 # 
@@ -239,13 +469,29 @@ result.stepwise <- CompareAccuracy(kdj.d,
                           arg.comparison.period = comparison.period,
                           arg.flag = 0,
                           arg.pdq.df = NULL,
-                          arg.stepwise = TRUE)
+                          arg.stepwise = TRUE,
+                          arg.maxorder = 5)
+
+result.stepwise.maxorder <- CompareAccuracy(kdj.d, 
+                          arg.forecast.period = 4,
+                          arg.training.set.endpoint = training.set.endpoint, 
+                          arg.comparison.period = comparison.period,
+                          arg.flag = 0,
+                          arg.pdq.df = NULL,
+                          arg.stepwise = TRUE,
+                          arg.maxorder = 9)
+
+summarized.result <- cbind(result, result.stepwise, result.stepwise.maxorder)[,c(1:4, 13, 6, 14:18,27,20,28:32, 41, 34, 42)]
+
+(summarized.result[order(summarized.result$RMSE.2 - summarized.result$RMSE.1),])
 
 
-cbind(result, result.stepwise)[,c(1:4, 13, 6, 14:17,26,19 )]
+mean(summarized.result$RMSE)
+mean(summarized.result$RMSE.1)
+mean(summarized.result$RMSE.2)
 
-mean(cbind(result, result.stepwise)[,6])
-mean(cbind(result, result.stepwise)[,19])
+result[result$p != result.stepwise$p | result$d != result.stepwise$d | result$q != result.stepwise$q, "seq"]
+
 ```
 
 
@@ -394,14 +640,14 @@ DrawPlot(kdj.k,
 result <- CompareAccuracy(kdj.d, 
                           arg.forecast.period = 4,
                           arg.training.set.endpoint = 200, 
-                          arg.comparison.period = 100,
+                          arg.comparison.period = 10,
                           arg.flag = 0,
                           arg.pdq.df = NULL)
 
 result.kdj.k <- CompareAccuracy(kdj.k, 
                           arg.forecast.period = 4,
                           arg.training.set.endpoint = 200, 
-                          arg.comparison.period = 100,
+                          arg.comparison.period = 10,
                           arg.flag = 0,
                           arg.pdq.df = NULL)
 
@@ -409,5 +655,14 @@ compare.result <- cbind(result, result.kdj.k)[,c(1:4, 6, 13:17,19, 26)]
 
 mean(compare.result[,5])
 mean(compare.result[,11])
+```
+
+```{r}
+getwd()
+load("D:\\MyR\\stock\\result.RData")
+
+rm(list = ls())
+load("D:\\MyR\\stock\\result300400.RData")
+save(result, result.stepwise,result.stepwise.maxorder, file = "result300400.RData")
 ```
 

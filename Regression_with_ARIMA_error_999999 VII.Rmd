@@ -1,0 +1,77 @@
+---
+title: "ARIMA Prediction Of Stock 999999"
+author: "Wu Wei"
+date: "2017-1-4"
+output: html_document
+---
+
+## Synopsis
+
+
+## Pure Arima Modelling
+### Library input & Data Input
+```{r}
+rm(list = ls())
+
+
+suppressMessages(library(forecast))
+# suppressMessages(library(sandwich))
+# suppressMessages(library(lmtest))
+
+setwd("d://MyR//stock//")
+original.data <- read.csv("goldweekly.csv")
+# (original.data)
+
+close.price <- as.ts(original.data[,5])
+# volume <- as.ts(original.data[,6])
+kdj.k <- as.ts(original.data[,7])
+kdj.d <- as.ts(original.data[,8])
+
+training.set.close.price <- window(close.price, start = 1500)
+# test.set.close.price <- window(close.price, start = 341)
+
+
+# training.set.kdj.k <- window(kdj.k, start = 1, end = 340)
+# test.set.kdj.k <- window(kdj.k, start = 341)
+
+training.set.kdj.d <- window(kdj.d, start = 1500)
+# test.set.kdj.d <- window(kdj.d, start = 341)
+
+```
+
+
+### Modelling for close.price and lagged KDJ
+
+```{r}
+
+reg.lagged.df <- cbind(ts(c(NA, training.set.close.price[-length(training.set.close.price)])),
+                       ts(c(NA, NA, head(training.set.close.price, length(training.set.close.price) - 2))),
+                       ts(c(NA, NA, NA, head(training.set.close.price, length(training.set.close.price) - 3))))
+
+fit.pure.arima <- auto.arima(training.set.kdj.d[4:length(training.set.kdj.d)], 
+                             stepwise = FALSE, 
+                              approximation = FALSE, max.order = 9)
+                
+
+fit.1 <- auto.arima(training.set.kdj.d[4:length(training.set.kdj.d)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.1.2 <- auto.arima(training.set.kdj.d[4:length(training.set.kdj.d)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:2],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.1.2.3 <- auto.arima(training.set.kdj.d[4:length(training.set.kdj.d)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:3],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.pure.arima$aicc
+
+fit.1$aicc
+
+fit.1.2$aicc
+
+fit.1.2.3$aicc
+
+```
+
