@@ -24,7 +24,7 @@ original.data <- read.csv("goldweekly.csv")
 
 close.price <- ts(window(original.data[,5], start = 1500, end = 1900), start = 1)
 # volume <- as.ts(original.data[,6])
-# kdj.k <- as.ts(original.data[,7])
+kdj.k <- ts(window(original.data[,7], start = 1500, end = 1900), start = 1)
 kdj.d <- ts(window(original.data[,8], start = 1500, end = 1900), start = 1)
 
 
@@ -75,26 +75,7 @@ CompareObjectAccuracy <- function(arg.object,
                             ("drift" %in% names(fit.arima.object.1$coef)) * 1,
                             pvalue),
                           dim = c(14,1)))
-        
-                # if("drift" %in% names(fit.arima.object.1$coef)){
-        # 
-        #         result <- t(array(c(arg.training.set.endpoint, 
-        #                             fit.arima.object.1$arma[c(1,6,2)],
-        #                             df.accuracy[2,],
-        #                             1,
-        #                             pvalue), 
-        #                           dim = c(14,1)))                                
-        # }else{
-        # 
-        #         result <- t(array(c(arg.training.set.endpoint, 
-        #                             fit.arima.object.1$arma[c(1,6,2)],
-        #                             df.accuracy[2,],
-        #                             0,
-        #                             pvalue), 
-        #                           dim = c(14,1)))                
-        # }
 
-        
         col.names.accuracy <- colnames(df.accuracy)
         
 
@@ -123,24 +104,6 @@ CompareObjectAccuracy <- function(arg.object,
                                             pvalue),
                                           dim = c(14,1)))
                                 
-                # if("drift" %in% names(fit.arima.object.2$coef)){
-                # 
-                #         result2 <- t(array(c(arg.training.set.endpoint + i,
-                #                             fit.arima.object.2$arma[c(1,6,2)],
-                #                             accuracy(fc.arima.object.2, test.set.object.2)[2,],
-                #                             1,
-                #                             pvalue),
-                #                           dim = c(14,1)))
-                # }else{
-                # 
-                #         result2 <- t(array(c(arg.training.set.endpoint + i,
-                #                             fit.arima.object.2$arma[c(1,6,2)],
-                #                             accuracy(fc.arima.object.2, test.set.object.2)[2,],
-                #                             0,
-                #                             pvalue),
-                #                           dim = c(14,1)))
-                # }
-
                 result <- rbind(result, result2)
 
         }
@@ -190,24 +153,13 @@ CompareObjectXregAccuracy <- function(arg.object,
         df.accuracy <- accuracy(fc.arima.object.1, test.set.object.1)
         pvalue <- Box.test(residuals(fit.arima.object.1), lag=10, 
                            fitdf=sum(fit.arima.object.1$arma[c(1,2)]))$p.value
-        
-        if("drift" %in% names(fit.arima.object.1$coef)){
 
-                result <- t(array(c(arg.training.set.endpoint, 
-                                    fit.arima.object.1$arma[c(1,6,2)],
-                                    df.accuracy[2,],
-                                    1,
-                                    pvalue), 
-                                  dim = c(14,1)))                                
-        }else{
-
-                result <- t(array(c(arg.training.set.endpoint, 
-                                    fit.arima.object.1$arma[c(1,6,2)],
-                                    df.accuracy[2,],
-                                    0,
-                                    pvalue), 
-                                  dim = c(14,1)))                
-        }
+        result <- t(array(c(arg.training.set.endpoint,
+                            fit.arima.object.1$arma[c(1,6,2)],
+                            df.accuracy[2,],
+                            ("drift" %in% names(fit.arima.object.1$coef)) * 1,
+                            pvalue),
+                          dim = c(14,1)))
 
         
         col.names.accuracy <- colnames(df.accuracy)
@@ -235,24 +187,13 @@ CompareObjectXregAccuracy <- function(arg.object,
                 
                 pvalue <- Box.test(residuals(fit.arima.object.2), lag=10, 
                            fitdf=sum(fit.arima.object.2$arma[c(1,2)]))$p.value
-                
-                if("drift" %in% names(fit.arima.object.2$coef)){
 
-                        result2 <- t(array(c(arg.training.set.endpoint + i,
-                                            fit.arima.object.2$arma[c(1,6,2)],
-                                            accuracy(fc.arima.object.2, test.set.object.2)[2,],
-                                            1,
-                                            pvalue),
-                                          dim = c(14,1)))
-                }else{
-
-                        result2 <- t(array(c(arg.training.set.endpoint + i,
-                                            fit.arima.object.2$arma[c(1,6,2)],
-                                            accuracy(fc.arima.object.2, test.set.object.2)[2,],
-                                            0,
-                                            pvalue),
-                                          dim = c(14,1)))
-                }
+                result2 <- t(array(c(arg.training.set.endpoint + i,
+                                     fit.arima.object.2$arma[c(1,6,2)],
+                                     accuracy(fc.arima.object.2, test.set.object.2)[2,],
+                                     ("drift" %in% names(fit.arima.object.2$coef)) * 1,
+                                     pvalue),
+                                   dim = c(14,1)))
 
                 result <- rbind(result, result2)
 
@@ -318,26 +259,15 @@ CompareObjectEstimatedXregAccuracy <- function(arg.object,
         df.accuracy <- accuracy(fc.arima.object.1, test.set.object.1)
         pvalue <- Box.test(residuals(fit.arima.object.1), lag=10, 
                            fitdf=sum(fit.arima.object.1$arma[c(1,2)]))$p.value
-        
-        if("drift" %in% names(fit.arima.object.1$coef)){
 
-                result <- t(array(c(arg.training.set.endpoint, 
-                                    fit.arima.object.1$arma[c(1,6,2)],
-                                    df.accuracy[2,],
-                                    1,
-                                    pvalue), 
-                                  dim = c(14,1)))                                
-        }else{
+        result <- t(array(c(arg.training.set.endpoint,
+                            fit.arima.object.1$arma[c(1,6,2)],
+                            df.accuracy[2,],
+                            ("drift" %in% names(fit.arima.object.1$coef)) * 1,
+                            pvalue),
+                          dim = c(14,1)))
+                
 
-                result <- t(array(c(arg.training.set.endpoint, 
-                                    fit.arima.object.1$arma[c(1,6,2)],
-                                    df.accuracy[2,],
-                                    0,
-                                    pvalue), 
-                                  dim = c(14,1)))                
-        }
-
-        
         col.names.accuracy <- colnames(df.accuracy)
         
 
@@ -384,24 +314,13 @@ CompareObjectEstimatedXregAccuracy <- function(arg.object,
                 pvalue <- Box.test(residuals(fit.arima.object.2), lag=10, 
                            fitdf=sum(fit.arima.object.2$arma[c(1,2)]))$p.value
                 
-                if("drift" %in% names(fit.arima.object.2$coef)){
-
-                        result2 <- t(array(c(arg.training.set.endpoint + i,
-                                            fit.arima.object.2$arma[c(1,6,2)],
-                                            accuracy(fc.arima.object.2, test.set.object.2)[2,],
-                                            1,
-                                            pvalue),
-                                          dim = c(14,1)))
-                }else{
-
-                        result2 <- t(array(c(arg.training.set.endpoint + i,
-                                            fit.arima.object.2$arma[c(1,6,2)],
-                                            accuracy(fc.arima.object.2, test.set.object.2)[2,],
-                                            0,
-                                            pvalue),
-                                          dim = c(14,1)))
-                }
-
+                result2 <- t(array(c(arg.training.set.endpoint + i,
+                                     fit.arima.object.2$arma[c(1,6,2)],
+                                     accuracy(fc.arima.object.2, test.set.object.2)[2,],
+                                     ("drift" %in% names(fit.arima.object.2$coef)) * 1,
+                                     pvalue),
+                                   dim = c(14,1)))
+                
                 result <- rbind(result, result2)
 
         }
@@ -419,7 +338,7 @@ CompareObjectEstimatedXregAccuracy <- function(arg.object,
 
 
 ```{r}
-training.set.endpoint <- 330
+training.set.endpoint <- 290
 
 comparison.period <- 10
 
@@ -447,13 +366,57 @@ system.time(result.xreg.est <- CompareObjectEstimatedXregAccuracy(arg.object = c
 
 final.result <- cbind(result, result.xreg, result.xreg.est)
 
-final.result[,c(1:4, 13, 6, 14:18, 20, 27, 28:32, 34, 41, 42)]
+final.result[,c(1:4, 13, 6, 14:18, 27, 20, 28:32, 41,34,  42)]
 
 mean(final.result[,6])
 mean(final.result[,20])
 mean(final.result[,34])
 
 mean(final.result[,6] > final.result[,34]) 
+
+```
+
+
+```{r}
+## compare the prediction accuracy of kdj.k, kdj.d and the difference between them
+
+training.set.endpoint <- 290
+
+comparison.period <- 20
+
+maxorder <- 9
+
+system.time(result.kdj.k <- CompareObjectAccuracy(arg.object = kdj.k, 
+                            arg.forecast.period = 5,
+                            arg.training.set.endpoint = training.set.endpoint, 
+                            arg.comparison.period = comparison.period,
+                            arg.maxorder = maxorder))
+
+system.time(result.kdj.d <- CompareObjectAccuracy(arg.object = kdj.d, 
+                            arg.forecast.period = 5,
+                            arg.training.set.endpoint = training.set.endpoint, 
+                            arg.comparison.period = comparison.period,
+                            arg.maxorder = maxorder))
+
+system.time(result.kdj.kd.diff <- CompareObjectAccuracy(arg.object = kdj.k - kdj.d , 
+                            arg.forecast.period = 5,
+                            arg.training.set.endpoint = training.set.endpoint, 
+                            arg.comparison.period = comparison.period,
+                            arg.maxorder = maxorder))
+
+
+final.result <- cbind(result.kdj.k, result.kdj.d, result.kdj.kd.diff)
+
+final.result[,c(1:4, 13, 6, 14:18, 27, 20, 28:32, 41,34,  42)]
+
+mean(final.result[,6])
+mean(final.result[,20])
+mean(final.result[,34])
+
+max(abs(kdj.k - kdj.d))
+
+plot(kdj.k - kdj.d)
+abline(h = 0, col = "red")
 
 ```
 

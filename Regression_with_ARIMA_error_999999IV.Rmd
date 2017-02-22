@@ -20,7 +20,9 @@ suppressMessages(library(doParallel))
 # suppressMessages(library(lmtest))
 
 setwd("d://MyR//stock//")
-original.data <- read.csv("goldweekly.csv")
+# original.data <- read.csv("goldweekly.csv")
+
+original.data <- read.csv("goldmonthly.csv")
 # (original.data)
 
 close.price <- as.ts(original.data[,5])
@@ -257,7 +259,8 @@ DrawKDJDForecastPlot <- function(arg.close.price, arg.kdj.k, arg.kdj.d, arg.fore
                              arg.ylabel.offset,
                              arg.xlim.offset,
                              arg.maxorder.flag,
-                             arg.training.set.endpoint){
+                             arg.training.set.endpoint,
+                             arg.start){
         
 
         par(mfrow = c(1,1))
@@ -278,13 +281,17 @@ DrawKDJDForecastPlot <- function(arg.close.price, arg.kdj.k, arg.kdj.d, arg.fore
                 kdj.k.data <- arg.kdj.k
         }
 
-        training.set.close.price <- window(close.price.data, start = 1, end = arg.training.set.endpoint)
-        training.set.kdj.d <- window(kdj.d.data, start = 1, end = arg.training.set.endpoint)
+        training.set.close.price <- window(close.price.data, start = arg.start, end = arg.training.set.endpoint)
+        training.set.kdj.d <- window(kdj.d.data, start = arg.start, end = arg.training.set.endpoint)
+        training.set.kdj.k <- window(kdj.k.data, start = arg.start, end = arg.training.set.endpoint)
         
         test.set.close.price <- window(close.price.data, start = arg.training.set.endpoint + 1,
                                        end = arg.training.set.endpoint + arg.forecast.period)
 
         test.set.kdj.d <- window(kdj.d.data, start = arg.training.set.endpoint + 1,
+                                 end = arg.training.set.endpoint + arg.forecast.period)                      
+        
+        test.set.kdj.k <- window(kdj.k.data, start = arg.training.set.endpoint + 1,
                                  end = arg.training.set.endpoint + arg.forecast.period)                      
         
         reg.lagged.df <- cbind(training.set.kdj.d,
@@ -441,6 +448,12 @@ DrawKDJDForecastPlot <- function(arg.close.price, arg.kdj.k, arg.kdj.d, arg.fore
 
         estimated.kdj.d.stepwise <- forecast(fit.arima.kdj.d.stepwise, h = length(test.set.kdj.d))$mean
 
+        fit.arima.kdj.k.stepwise <- auto.arima(training.set.kdj.k,
+                                               stepwise = FALSE,
+                                               approximation = FALSE)
+        
+        estimated.kdj.k.stepwise <- forecast(fit.arima.kdj.k.stepwise, h = length(test.set.kdj.k))$mean
+        
         plot(ts(c(arg.kdj.d[(arg.training.set.endpoint - arg.xlim.offset) : (arg.training.set.endpoint)],
                   estimated.kdj.d.stepwise), start = (arg.training.set.endpoint - arg.xlim.offset)),
              axes = FALSE,type = "l", ylim = c(5,95), main = "stepwise", xlab = "")
@@ -473,13 +486,17 @@ DrawKDJDForecastPlot <- function(arg.close.price, arg.kdj.k, arg.kdj.d, arg.fore
                lwd = par("lwd"))
 
         lines(ts(estimated.kdj.d.stepwise, start = arg.training.set.endpoint + 1), type = "o", col = "purple")
+        lines(ts(c(arg.kdj.k[(arg.training.set.endpoint - arg.xlim.offset) : (arg.training.set.endpoint)],
+                  estimated.kdj.k.stepwise), start = (arg.training.set.endpoint - arg.xlim.offset)), col = "orange")
+        lines(ts(estimated.kdj.k.stepwise, start = arg.training.set.endpoint + 1), type = "l", col = "blue")
+        
         box()
         
         ###########
         
         # 
         if(arg.maxorder.flag == FALSE){
-                return(0)
+                return(fit.arima.kdj.d.stepwise)
         }
 
         print(system.time(fit.arima.kdj.d.stepwise.maxorder <- auto.arima(training.set.kdj.d,
@@ -494,6 +511,8 @@ DrawKDJDForecastPlot <- function(arg.close.price, arg.kdj.k, arg.kdj.d, arg.fore
         plot(ts(c(arg.kdj.d[(arg.training.set.endpoint - arg.xlim.offset) : (arg.training.set.endpoint)],
                   estimated.kdj.d.stepwise.maxorder), start = (arg.training.set.endpoint - arg.xlim.offset)),
              axes = FALSE,type = "l", ylim = c(5,95), main = "stepwise")
+        
+
         axis(1,
              at = seq(arg.training.set.endpoint - arg.xlim.offset,
                       arg.training.set.endpoint + arg.forecast.period, 5),
@@ -515,6 +534,7 @@ DrawKDJDForecastPlot <- function(arg.close.price, arg.kdj.k, arg.kdj.d, arg.fore
         lines(ts(estimated.kdj.d.stepwise.maxorder, start = arg.training.set.endpoint + 1), type = "o", col = "red")
         box()
 
+        return(fit.arima.kdj.d.stepwise.maxorder)
 }
 
 
@@ -524,9 +544,10 @@ DrawKDJDForecastPlot <- function(arg.close.price, arg.kdj.k, arg.kdj.d, arg.fore
 ```{r, fig.height=9, fig.width=10}
 DrawKDJDForecastPlot(close.price, kdj.k, kdj.d, arg.forecast.period = 5, 
                  arg.ylabel.offset = 80,
-                 arg.xlim.offset = 50,
+                 arg.xlim.offset = 80,
                  arg.maxorder.flag = FALSE,
-                 arg.training.set.endpoint = 347)
+                 arg.training.set.endpoint = 300,
+                 arg.start = 1)
 
 ```
         

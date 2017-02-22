@@ -27,15 +27,32 @@ close.price <- as.ts(original.data[,5])
 kdj.k <- as.ts(original.data[,7])
 kdj.d <- as.ts(original.data[,8])
 
-training.set.close.price <- ts(window(close.price, start = 1500, end = 1799), start = 1)
-test.set.close.price <- ts(window(close.price, start = 1800, end = 1900), start = 301)
+# training.set.close.price <- window(close.price, start = 1, end = 299)
+# test.set.close.price <- window(close.price, start = 300)
+# 
+# 
+# training.set.kdj.k <- window(kdj.k, start = 1, end = 299)
+# test.set.kdj.k <- window(kdj.k, start = 300)
+# 
+# training.set.kdj.d <- window(kdj.d, start = 1, end = 299)
+# test.set.kdj.d <- window(kdj.d, start = 300)
 
 
-training.set.kdj.k <- ts(window(kdj.k, start = 1500, end = 1799), start = 1)
-test.set.kdj.k <- ts(window(kdj.k, start = 1800, end = 1900), start = 301)
+# training.set.close.price <- ts(window(close.price, start = 1500, end = 1799), start = 1)
+# test.set.close.price <- ts(window(close.price, start = 1800, end = 1900), start = 301)
 
-training.set.kdj.d <- ts(window(kdj.d, start = 1500, end = 1799), start = 1)
-test.set.kdj.d <- ts(window(kdj.d, start = 1800, end = 1900), start = 301)
+training.set.close.price <- window(close.price, start = length(close.price) - 500)
+
+# training.set.kdj.k <- ts(window(kdj.k, start = 1500, end = 1799), start = 1)
+# test.set.kdj.k <- ts(window(kdj.k, start = 1800, end = 1900), start = 301)
+
+training.set.kdj.k <- window(kdj.k, start = length(kdj.k) - 500)
+
+# training.set.kdj.d <- ts(window(kdj.d, start = 1500, end = 1799), start = 1)
+# test.set.kdj.d <- ts(window(kdj.d, start = 1800, end = 1900), start = 301)
+
+
+training.set.kdj.d <- window(kdj.d, start = length(kdj.d) - 500)
 
 ```
 
@@ -687,98 +704,94 @@ mean(test.set.close.price > lower.bound & test.set.close.price < upper.bound)
 ```{r}
 
 reg.lagged.df <- cbind(as.numeric(training.set.kdj.k),
-                as.numeric(training.set.kdj.d),       
+                as.numeric(training.set.kdj.d), 
+                as.numeric(training.set.kdj.k - training.set.kdj.d), 
+                
                 ts(c(NA, training.set.kdj.k[-length(training.set.kdj.k)])),
                 ts(c(NA, training.set.kdj.d[-length(training.set.kdj.d)])),
+                ts(c(NA, training.set.kdj.k[-length(training.set.kdj.k)] - 
+                             training.set.kdj.d[-length(training.set.kdj.d)])),
+                
                 ts(c(NA, NA, head(training.set.kdj.k, length(training.set.kdj.k) - 2))),
                 ts(c(NA, NA, head(training.set.kdj.d, length(training.set.kdj.d) - 2))),
+                ts(c(NA, NA, head(training.set.kdj.k, length(training.set.kdj.k) - 2) - 
+                             head(training.set.kdj.d, length(training.set.kdj.d) - 2))),
+                
                 ts(c(NA, NA, NA, head(training.set.kdj.k, length(training.set.kdj.k) - 3))),
-                ts(c(NA, NA, NA, head(training.set.kdj.d, length(training.set.kdj.d) - 3))))
+                ts(c(NA, NA, NA, head(training.set.kdj.d, length(training.set.kdj.d) - 3))),
+                ts(c(NA, NA, NA, head(training.set.kdj.k, length(training.set.kdj.k) - 3) - 
+                             head(training.set.kdj.d, length(training.set.kdj.d) - 3))))
 
 fit.pure.arima <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
                              stepwise = FALSE, 
                               approximation = FALSE, max.order = 9)
                 
 
-fit.12 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
-                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:2],
-                     max.order = 9, stepwise = FALSE, approximation = FALSE)
-
-fit.14 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
-                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:4],
-                     max.order = 9, stepwise = FALSE, approximation = FALSE)
-
-fit.16 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
-                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:6],
-                     max.order = 9, stepwise = FALSE, approximation = FALSE)
-
-fit.18 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
-                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:8],
-                     max.order = 9, stepwise = FALSE, approximation = FALSE)
-
-fit.34 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
-                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 3:4],
-                     max.order = 9, stepwise = FALSE, approximation = FALSE)
-
-fit.36 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
-                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 3:6],
-                     max.order = 9, stepwise = FALSE, approximation = FALSE)
-
-fit.38 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
-                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 3:8],
-                     max.order = 9, stepwise = FALSE, approximation = FALSE)
-
 fit.2 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
                      xreg = reg.lagged.df[4:nrow(reg.lagged.df), 2],
                     max.order = 9, stepwise = FALSE, approximation = FALSE)
 
-fit.2.4 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
-                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(2,4)],
+fit.2.5 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(2,5)],
                      max.order = 9, stepwise = FALSE, approximation = FALSE)
 
-fit.2.4.6 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
-                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(2,4,6)],
+fit.2.5.8 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(2,5,8)],
                      max.order = 9, stepwise = FALSE, approximation = FALSE)
 
-fit.2.4.6.8 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
-                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(2,4,6,8)],
+fit.2.5.8.11 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(2,5,8,11)],
                      max.order = 9, stepwise = FALSE, approximation = FALSE)
 
 fit.1 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
                      xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1],
                     max.order = 9, stepwise = FALSE, approximation = FALSE)
 
-fit.1.3 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
-                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(1,3)],
+fit.1.4 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(1,4)],
                      max.order = 9, stepwise = FALSE, approximation = FALSE)
 
-fit.1.3.5 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
-                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(1,3,5)],
+fit.1.4.7 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(1,4,7)],
                      max.order = 9, stepwise = FALSE, approximation = FALSE)
 
-fit.1.3.5.7 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
-                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(1,3,5,7)],
+fit.1.4.7.10 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(1,4,7,10)],
                      max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.3 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 3],
+                    max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.3.6 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(3,6)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.3.6.9 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(3,6,9)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.3.6.9.12 <- auto.arima(training.set.close.price[4:length(training.set.close.price)], 
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(3,6,9,12)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
 
 fit.pure.arima$aicc
 
-fit.12$aicc
-fit.14$aicc
-fit.16$aicc
-fit.18$aicc
-fit.34$aicc
-fit.36$aicc
-fit.38$aicc
-
 fit.2$aicc
-fit.2.4$aicc
-fit.2.4.6$aicc
-fit.2.4.6.8$aicc
+fit.2.5$aicc
+fit.2.5.8$aicc
+fit.2.5.8.11$aicc
 
 fit.1$aicc
-fit.1.3$aicc
-fit.1.3.5$aicc
-fit.1.3.5.7$aicc
+fit.1.4$aicc
+fit.1.4.7$aicc
+fit.1.4.7.10$aicc
+
+fit.3$aicc
+fit.3.6$aicc
+fit.3.6.9$aicc
+fit.3.6.9.12$aicc
 ```
 
 ```{r}
