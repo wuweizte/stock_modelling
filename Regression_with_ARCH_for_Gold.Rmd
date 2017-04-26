@@ -1,0 +1,743 @@
+---
+title: "ARIMA Prediction Of Gold--Result"
+author: "Wu Wei"
+date: "2017-2-13"
+output: html_document
+---
+
+## Synopsis
+
+
+```{r library, echo = FALSE}
+suppressMessages(library(forecast))
+suppressMessages(library(ggplot2))
+suppressMessages(library(rugarch))
+suppressMessages(library(lmtest))
+suppressMessages(library(tseries))
+suppressMessages(library(fBasics))
+
+library("FinTS")
+
+```
+
+## 4. Verification for Weekly Models 
+
+```{r}
+rm(list = ls())
+
+setwd("d://MyR//stock//")
+weekly.original.data <- read.csv("goldweekly.csv")
+
+weekly.kdj.k <- as.ts(weekly.original.data[,7])
+
+```
+
+
+```{r}
+
+training.set <- window(weekly.kdj.k, start = length(weekly.kdj.k) - 499, 
+                     end = length(weekly.kdj.k) - 20)
+
+test.set <- window(weekly.kdj.k, start = length(weekly.kdj.k) - 19, 
+                     end = length(weekly.kdj.k) - 15)
+
+# tsdisplay(training.set)
+```
+
+```{r}
+mean(training.set)
+sd(training.set)
+skewness(training.set)
+kurtosis(training.set)
+jarqueberaTest(training.set)
+
+```
+
+
+
+```{r}
+fit.arima.kdj.k <- auto.arima(training.set,
+                              max.order = 5,
+                              d = 0,
+                              stepwise = FALSE,
+                              approximation = FALSE)
+
+# fit.arima.kdj.k
+
+
+# coeftest(fit.arima.kdj.k)
+
+# summary(fit.arima.kdj.k)
+
+
+# autoarfima(data = training.set, ar.max = 4, ma.max = 2, 
+# criterion = "AIC", method = "full")
+```
+
+```{r}
+fc.arima <- forecast(fit.arima.kdj.k, h = 5)
+
+inf.arima <- fit.arima.kdj.k$aic
+llh.arima <- fit.arima.kdj.k$loglik
+rmse.arima <- accuracy(fc.arima, test.set)[2,2]
+```
+
+
+### 4.1 White Noise Test
+
+
+```{r 4.1, cache=FALSE, eval=TRUE}
+
+
+Box.test(residuals(fit.arima.kdj.k), lag=10, fitdf=sum(fit.arima.kdj.k$arma[c(1,2)]), type = "Lj")
+
+# tsdisplay(residuals(fit.arima.kdj.k))
+```
+
+
+
+### 4.5 ARCH Effect Test
+
+
+```{r main 4.5, eval=TRUE}
+Box.test((residuals(fit.arima.kdj.k))^2, lag=10, fitdf=sum(fit.arima.kdj.k$arma[c(1,2)]), type = "Lj")
+
+# tsdisplay((residuals(fit.arima.kdj.k))^2)
+```
+
+
+
+
+###  GARCH Model specification
+
+
+```{r}
+myspec.sgarch.norm <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
+                       mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                       distribution.model = "norm")
+
+myfit.sgarch.norm <- ugarchfit(myspec.sgarch.norm, data = training.set, solver = "hybrid")
+
+fc.sgarch.norm <- ugarchforecast(myfit.sgarch.norm, n.ahead = 5)
+
+rmse.sgarch.norm <- sqrt(mean((fitted(fc.sgarch.norm) - test.set)^2))
+
+rmse.sgarch.norm <- round(rmse.sgarch.norm, digits = 2)
+
+(inf.sgarch.norm <- (infocriteria(myfit.sgarch.norm))[1])
+
+(llh.sgarch.norm <- likelihood(myfit.sgarch.norm))
+
+
+residuals(myfit.sgarch.norm, standardize = TRUE)
+
+ Box.test(residuals(myfit.sgarch.norm, standardize = TRUE), lag=20, 
+                           fitdf=length(coef(myfit.sgarch.norm)))$p.value
+ 
+ Box.test((residuals(myfit.sgarch.norm, standardize = TRUE))^2, lag=20, 
+                           fitdf=length(coef(myfit.sgarch.norm)))$p.value
+
+ ArchTest(residuals(myfit.sgarch.norm, standardize = TRUE))
+ 
+```
+
+```{r}
+coef(myfit.sgarch.norm)
+```
+
+```{r}
+
+nyblom(myfit.sgarch.norm)
+```
+
+```{r}
+myspec.sgarch.norm.2 <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
+                       mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                       distribution.model = "norm")
+
+myfit.sgarch.norm.2 <- ugarchfit(myspec.sgarch.norm.2, data = training.set, solver = "hybrid")
+
+coef(myfit.sgarch.norm.2)
+```
+
+```{r}
+nyblom(myfit.sgarch.norm.2)
+```
+
+```{r}
+myspec.sgarch.norm.3 <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
+                       distribution.model = "norm")
+
+myfit.sgarch.norm.3 <- ugarchfit(myspec.sgarch.norm.3, data = training.set, solver = "hybrid")
+
+coef(myfit.sgarch.norm.3)
+```
+
+```{r}
+nyblom(myfit.sgarch.norm.3)
+```
+
+```{r}
+signbias(myfit.sgarch.norm.3)
+```
+
+
+```{r}
+myspec.igarch.norm <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
+                       mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                       distribution.model = "norm")
+
+myfit.igarch.norm <- ugarchfit(myspec.igarch.norm, data = training.set, solver = "hybrid",
+                               fit.control = list(fixed.se = 0))
+
+
+suppressWarnings(fc.igarch.norm <- ugarchforecast(myfit.igarch.norm, n.ahead = length(test.set)))
+
+rmse.igarch.norm <- sqrt(mean((fitted(fc.igarch.norm) - test.set)^2))
+
+rmse.igarch.norm <- round(rmse.igarch.norm, digits = 2)
+
+(inf.igarch.norm <- (infocriteria(myfit.igarch.norm))[1])
+
+(llh.igarch.norm <- likelihood(myfit.igarch.norm))
+
+```
+
+```{r}
+myspec.egarch.norm <- ugarchspec(variance.model = list(model = "eGARCH",garchOrder = c(1,1)),
+                       mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                       distribution.model = "norm")
+
+myfit.egarch.norm <- ugarchfit(myspec.egarch.norm, data = training.set, solver = "hybrid")
+
+fc.egarch.norm <- ugarchforecast(myfit.egarch.norm, n.ahead = 5)
+
+rmse.egarch.norm <- sqrt(mean((fitted(fc.egarch.norm) - test.set)^2))
+
+rmse.egarch.norm <- round(rmse.egarch.norm, digits = 2)
+
+(inf.egarch.norm <- (infocriteria(myfit.egarch.norm))[1])
+
+(llh.egarch.norm <- likelihood(myfit.egarch.norm))
+
+```
+
+```{r}
+myspec.gjrgarch.norm <- ugarchspec(variance.model = list(model = "gjrGARCH",garchOrder = c(1,1)),
+                       mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                       distribution.model = "norm")
+
+myfit.gjrgarch.norm <- ugarchfit(myspec.gjrgarch.norm, data = training.set, solver = "hybrid")
+
+fc.gjrgarch.norm <- ugarchforecast(myfit.gjrgarch.norm, n.ahead = 5)
+
+rmse.gjrgarch.norm <- sqrt(mean((fitted(fc.gjrgarch.norm) - test.set)^2))
+
+(inf.gjrgarch.norm <- (infocriteria(myfit.gjrgarch.norm))[1])
+
+(llh.gjrgarch.norm <- likelihood(myfit.gjrgarch.norm))
+
+```
+
+```{r}
+myspec.aparch.norm <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(1,1)),
+                       mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                       distribution.model = "norm")
+
+myfit.aparch.norm <- ugarchfit(myspec.aparch.norm, data = training.set, solver = "hybrid")
+
+fc.aparch.norm <- ugarchforecast(myfit.aparch.norm, n.ahead = 5)
+
+rmse.aparch.norm <- sqrt(mean((fitted(fc.aparch.norm) - test.set)^2))
+
+(inf.aparch.norm <- (infocriteria(myfit.aparch.norm))[1])
+
+(llh.aparch.norm <- likelihood(myfit.aparch.norm))
+
+```
+
+
+```{r}
+myspec.sgarch.snorm <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
+                       mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                       distribution.model = "snorm")
+
+myfit.sgarch.snorm <- ugarchfit(myspec.sgarch.snorm, data = training.set, solver = "hybrid")
+
+fc.sgarch.snorm <- ugarchforecast(myfit.sgarch.snorm, n.ahead = 5)
+
+rmse.sgarch.snorm <- sqrt(mean((fitted(fc.sgarch.snorm) - test.set)^2))
+
+(inf.sgarch.snorm <- (infocriteria(myfit.sgarch.snorm))[1])
+
+(llh.sgarch.snorm <- likelihood(myfit.sgarch.snorm))
+
+```
+
+```{r}
+myspec.igarch.snorm <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
+                       mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                       distribution.model = "snorm")
+
+myfit.igarch.snorm <- ugarchfit(myspec.igarch.snorm, data = training.set, solver = "hybrid")
+
+fc.igarch.snorm <- ugarchforecast(myfit.igarch.snorm, n.ahead = 5)
+
+rmse.igarch.snorm <- sqrt(mean((fitted(fc.igarch.snorm) - test.set)^2))
+
+(inf.igarch.snorm <- (infocriteria(myfit.igarch.snorm))[1])
+
+(llh.igarch.snorm <- likelihood(myfit.igarch.snorm))
+
+```
+
+```{r}
+myspec.egarch.snorm <- ugarchspec(variance.model = list(model = "eGARCH",garchOrder = c(1,1)),
+                       mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                       distribution.model = "snorm")
+
+myfit.egarch.snorm <- ugarchfit(myspec.egarch.snorm, data = training.set, solver = "hybrid")
+
+fc.egarch.snorm <- ugarchforecast(myfit.egarch.snorm, n.ahead = 5)
+
+rmse.egarch.snorm <- sqrt(mean((fitted(fc.egarch.snorm) - test.set)^2))
+
+(inf.egarch.snorm <- (infocriteria(myfit.egarch.snorm))[1])
+
+(llh.egarch.snorm <- likelihood(myfit.egarch.snorm))
+
+```
+
+```{r}
+myspec.gjrgarch.snorm <- ugarchspec(variance.model = list(model = "gjrGARCH",garchOrder = c(1,1)),
+                       mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                       distribution.model = "snorm")
+
+myfit.gjrgarch.snorm <- ugarchfit(myspec.gjrgarch.snorm, data = training.set, solver = "hybrid")
+
+fc.gjrgarch.snorm <- ugarchforecast(myfit.gjrgarch.snorm, n.ahead = 5)
+
+rmse.gjrgarch.snorm <- sqrt(mean((fitted(fc.gjrgarch.snorm) - test.set)^2))
+
+(inf.gjrgarch.snorm <- (infocriteria(myfit.gjrgarch.snorm))[1])
+
+(llh.gjrgarch.snorm <- likelihood(myfit.gjrgarch.snorm))
+
+```
+
+
+```{r}
+myspec.sgarch.std <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
+                                mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                distribution.model = "std")
+
+myfit.sgarch.std <- ugarchfit(myspec.sgarch.std, data = training.set, solver = "hybrid")
+
+fc.sgarch.std <- ugarchforecast(myfit.sgarch.std, n.ahead = 5)
+
+rmse.sgarch.std <- sqrt(mean((fitted(fc.sgarch.std) - test.set)^2))
+
+(inf.sgarch.std <- (infocriteria(myfit.sgarch.std))[1])
+
+(llh.sgarch.std <- likelihood(myfit.sgarch.std))
+
+```
+
+```{r}
+myspec.igarch.std <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
+                                mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                distribution.model = "std")
+
+myfit.igarch.std <- ugarchfit(myspec.igarch.std, data = training.set, solver = "hybrid")
+
+fc.igarch.std <- ugarchforecast(myfit.igarch.std, n.ahead = 5)
+
+rmse.igarch.std <- sqrt(mean((fitted(fc.igarch.std) - test.set)^2))
+
+(inf.igarch.std <- (infocriteria(myfit.igarch.std))[1])
+
+(llh.igarch.std <- likelihood(myfit.igarch.std))
+
+```
+
+```{r}
+myspec.egarch.std <- ugarchspec(variance.model = list(model = "eGARCH",garchOrder = c(1,1)),
+                                mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                distribution.model = "std")
+
+myfit.egarch.std <- ugarchfit(myspec.egarch.std, data = training.set, solver = "hybrid")
+
+fc.egarch.std <- ugarchforecast(myfit.egarch.std, n.ahead = 5)
+
+rmse.egarch.std <- sqrt(mean((fitted(fc.egarch.std) - test.set)^2))
+
+(inf.egarch.std <- (infocriteria(myfit.egarch.std))[1])
+
+(llh.egarch.std <- likelihood(myfit.egarch.std))
+
+```
+
+```{r}
+myspec.gjrgarch.std <- ugarchspec(variance.model = list(model = "gjrGARCH",garchOrder = c(1,1)),
+                                mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                distribution.model = "std")
+
+myfit.gjrgarch.std <- ugarchfit(myspec.gjrgarch.std, data = training.set, solver = "hybrid")
+
+fc.gjrgarch.std <- ugarchforecast(myfit.gjrgarch.std, n.ahead = 5)
+
+rmse.gjrgarch.std <- sqrt(mean((fitted(fc.gjrgarch.std) - test.set)^2))
+
+(inf.gjrgarch.std <- (infocriteria(myfit.gjrgarch.std))[1])
+
+(llh.gjrgarch.std <- likelihood(myfit.gjrgarch.std))
+
+```
+
+
+```{r}
+myspec.sgarch.sstd <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
+                                mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                distribution.model = "sstd")
+
+myfit.sgarch.sstd <- ugarchfit(myspec.sgarch.sstd, data = training.set, solver = "hybrid")
+
+fc.sgarch.sstd <- ugarchforecast(myfit.sgarch.sstd, n.ahead = 5)
+
+rmse.sgarch.sstd <- sqrt(mean((fitted(fc.sgarch.sstd) - test.set)^2))
+
+(inf.sgarch.sstd <- (infocriteria(myfit.sgarch.sstd))[1])
+
+(llh.sgarch.sstd <- likelihood(myfit.sgarch.sstd))
+
+```
+
+```{r}
+myspec.igarch.sstd <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
+                                mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                distribution.model = "sstd")
+
+myfit.igarch.sstd <- ugarchfit(myspec.igarch.sstd, data = training.set, solver = "hybrid")
+
+fc.igarch.sstd <- ugarchforecast(myfit.igarch.sstd, n.ahead = 5)
+
+rmse.igarch.sstd <- sqrt(mean((fitted(fc.igarch.sstd) - test.set)^2))
+
+(inf.igarch.sstd <- (infocriteria(myfit.igarch.sstd))[1])
+
+(llh.igarch.sstd <- likelihood(myfit.igarch.sstd))
+
+```
+
+```{r}
+myspec.egarch.sstd <- ugarchspec(variance.model = list(model = "eGARCH",garchOrder = c(1,1)),
+                                mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                distribution.model = "sstd")
+
+myfit.egarch.sstd <- ugarchfit(myspec.egarch.sstd, data = training.set, solver = "hybrid")
+
+fc.egarch.sstd <- ugarchforecast(myfit.egarch.sstd, n.ahead = 5)
+
+rmse.egarch.sstd <- sqrt(mean((fitted(fc.egarch.sstd) - test.set)^2))
+
+(inf.egarch.sstd <- (infocriteria(myfit.egarch.sstd))[1])
+
+(llh.egarch.sstd <- likelihood(myfit.egarch.sstd))
+
+```
+
+```{r}
+myspec.gjrgarch.sstd <- ugarchspec(variance.model = list(model = "gjrGARCH",garchOrder = c(1,1)),
+                                mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                distribution.model = "sstd")
+
+myfit.gjrgarch.sstd <- ugarchfit(myspec.gjrgarch.sstd, data = training.set, solver = "hybrid")
+
+fc.gjrgarch.sstd <- ugarchforecast(myfit.gjrgarch.sstd, n.ahead = 5)
+
+rmse.gjrgarch.sstd <- sqrt(mean((fitted(fc.gjrgarch.sstd) - test.set)^2))
+
+(inf.gjrgarch.sstd <- (infocriteria(myfit.gjrgarch.sstd))[1])
+
+(llh.gjrgarch.sstd <- likelihood(myfit.gjrgarch.sstd))
+
+```
+
+
+```{r}
+myspec.sgarch.ged <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
+                                mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                distribution.model = "ged")
+
+myfit.sgarch.ged <- ugarchfit(myspec.sgarch.ged, data = training.set, solver = "hybrid")
+
+fc.sgarch.ged <- ugarchforecast(myfit.sgarch.ged, n.ahead = 5)
+
+rmse.sgarch.ged <- sqrt(mean((fitted(fc.sgarch.ged) - test.set)^2))
+
+(inf.sgarch.ged <- (infocriteria(myfit.sgarch.ged))[1])
+
+(llh.sgarch.ged <- likelihood(myfit.sgarch.ged))
+
+
+```
+
+```{r}
+myspec.igarch.ged <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
+                                mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                distribution.model = "ged")
+
+myfit.igarch.ged <- ugarchfit(myspec.igarch.ged, data = training.set, solver = "hybrid")
+
+fc.igarch.ged <- ugarchforecast(myfit.igarch.ged, n.ahead = 5)
+
+rmse.igarch.ged <- sqrt(mean((fitted(fc.igarch.ged) - test.set)^2))
+
+(inf.igarch.ged <- (infocriteria(myfit.igarch.ged))[1])
+
+(llh.igarch.ged <- likelihood(myfit.igarch.ged))
+
+
+```
+
+```{r}
+myspec.gjrgarch.ged <- ugarchspec(variance.model = list(model = "gjrGARCH",garchOrder = c(1,1)),
+                                mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                distribution.model = "ged")
+
+myfit.gjrgarch.ged <- ugarchfit(myspec.gjrgarch.ged, data = training.set, solver = "hybrid")
+
+fc.gjrgarch.ged <- ugarchforecast(myfit.gjrgarch.ged, n.ahead = 5)
+
+rmse.gjrgarch.ged <- sqrt(mean((fitted(fc.gjrgarch.ged) - test.set)^2))
+
+(inf.gjrgarch.ged <- (infocriteria(myfit.gjrgarch.ged))[1])
+
+(llh.gjrgarch.ged <- likelihood(myfit.gjrgarch.ged))
+
+
+```
+
+
+```{r}
+myspec.sgarch.sged <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
+                                mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                distribution.model = "sged")
+
+myfit.sgarch.sged <- ugarchfit(myspec.sgarch.sged, data = training.set, solver = "hybrid")
+
+fc.sgarch.sged <- ugarchforecast(myfit.sgarch.sged, n.ahead = 5)
+
+rmse.sgarch.sged <- sqrt(mean((fitted(fc.sgarch.sged) - test.set)^2))
+
+(inf.sgarch.sged <- (infocriteria(myfit.sgarch.sged))[1])
+
+(llh.sgarch.sged <- likelihood(myfit.sgarch.sged))
+
+
+```
+
+```{r}
+myspec.igarch.sged <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
+                                mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                distribution.model = "sged")
+
+myfit.igarch.sged <- ugarchfit(myspec.igarch.sged, data = training.set, solver = "hybrid")
+
+fc.igarch.sged <- ugarchforecast(myfit.igarch.sged, n.ahead = 5)
+
+rmse.igarch.sged <- sqrt(mean((fitted(fc.igarch.sged) - test.set)^2))
+
+(inf.igarch.sged <- (infocriteria(myfit.igarch.sged))[1])
+
+(llh.igarch.sged <- likelihood(myfit.igarch.sged))
+
+
+```
+
+```{r}
+myspec.gjrgarch.sged <- ugarchspec(variance.model = list(model = "gjrGARCH",garchOrder = c(1,1)),
+                                mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                distribution.model = "sged")
+
+myfit.gjrgarch.sged <- ugarchfit(myspec.gjrgarch.sged, data = training.set, solver = "hybrid")
+
+fc.gjrgarch.sged <- ugarchforecast(myfit.gjrgarch.sged, n.ahead = 5)
+
+rmse.gjrgarch.sged <- sqrt(mean((fitted(fc.gjrgarch.sged) - test.set)^2))
+
+inf.gjrgarch.sged <- (infocriteria(myfit.gjrgarch.sged))[1]
+
+llh.gjrgarch.sged <- likelihood(myfit.gjrgarch.sged)
+# 
+
+```
+
+
+```{r}
+
+aic.name <- c("inf.sgarch.norm",
+                "inf.sgarch.snorm",
+                "inf.sgarch.std",
+                "inf.sgarch.sstd",
+                "inf.sgarch.ged",
+                "inf.sgarch.sged",
+              "inf.igarch.norm",
+                "inf.igarch.snorm",
+                "inf.igarch.std",
+                "inf.igarch.sstd",
+                "inf.igarch.ged",
+                "inf.igarch.sged",
+              "inf.egarch.norm",
+              "inf.egarch.snorm",
+              "inf.egarch.std",
+              "inf.egarch.sstd",
+              "inf.gjrgarch.norm",
+              "inf.gjrgarch.snorm",
+              "inf.gjrgarch.std",
+              "inf.gjrgarch.sstd",
+              "inf.arima")
+
+aic.value <- c(inf.sgarch.norm,
+                inf.sgarch.snorm,
+                inf.sgarch.std,
+                inf.sgarch.sstd,
+                inf.sgarch.ged,
+                inf.sgarch.sged,
+               inf.igarch.norm,
+                inf.igarch.snorm,
+                inf.igarch.std,
+                inf.igarch.sstd,
+                inf.igarch.ged,
+                inf.igarch.sged,
+               inf.egarch.norm,
+                inf.egarch.snorm,
+                inf.egarch.std,
+                inf.egarch.sstd,
+               inf.gjrgarch.norm,
+                inf.gjrgarch.snorm,
+                inf.gjrgarch.std,
+                inf.gjrgarch.sstd,
+               inf.arima)
+
+aic.df <- data.frame(name = aic.name, aic = aic.value)
+
+
+print(aic.df[order(aic.df$aic),])
+
+```
+
+```{r}
+
+llh.name <- c("llh.sgarch.norm",
+                "llh.sgarch.snorm",
+                "llh.sgarch.std",
+                "llh.sgarch.sstd",
+                "llh.sgarch.ged",
+                "llh.sgarch.sged",
+              "llh.igarch.norm",
+                "llh.igarch.snorm",
+                "llh.igarch.std",
+                "llh.igarch.sstd",
+                "llh.igarch.ged",
+                "llh.igarch.sged",
+              "llh.egarch.norm",
+              "llh.egarch.snorm",
+              "llh.egarch.std",
+              "llh.egarch.sstd",
+              "llh.gjrgarch.norm",
+               "llh.gjrgarch.snorm",
+               "llh.gjrgarch.std",
+               "llh.gjrgarch.sstd",
+              "llh.arima")
+
+llh.value <- c(llh.sgarch.norm,
+                llh.sgarch.snorm,
+                llh.sgarch.std,
+                llh.sgarch.sstd,
+                llh.sgarch.ged,
+                llh.sgarch.sged,
+               llh.igarch.norm,
+                llh.igarch.snorm,
+                llh.igarch.std,
+                llh.igarch.sstd,
+                llh.igarch.ged,
+                llh.igarch.sged,
+               llh.egarch.norm,
+               llh.egarch.snorm,
+               llh.egarch.std,
+               llh.egarch.sstd,
+               llh.gjrgarch.norm,
+               llh.gjrgarch.snorm,
+               llh.gjrgarch.std,
+               llh.gjrgarch.sstd,
+               llh.arima)
+
+llh.df <- data.frame(name = llh.name, llh = llh.value)
+
+
+print(llh.df[order(llh.df$llh, decreasing = TRUE),])
+
+```
+
+
+```{r}
+
+rmse.name <- c("rmse.sgarch.norm",
+                "rmse.sgarch.snorm",
+                "rmse.sgarch.std",
+                "rmse.sgarch.sstd",
+                "rmse.sgarch.ged",
+                "rmse.sgarch.sged",
+              "rmse.igarch.norm",
+                "rmse.igarch.snorm",
+                "rmse.igarch.std",
+                "rmse.igarch.sstd",
+                "rmse.igarch.ged",
+                "rmse.igarch.sged",
+              "rmse.egarch.norm",
+              "rmse.egarch.snorm",
+              "rmse.egarch.std",
+              "rmse.egarch.sstd",
+              "rmse.gjrgarch.norm",
+              "rmse.gjrgarch.snorm",
+              "rmse.gjrgarch.std",
+              "rmse.gjrgarch.sstd",
+              "rmse.gjrgarch.ged",
+              "rmse.gjrgarch.sged",
+             "rmse.aparch.norm",
+              "rmse.arima")
+
+rmse.value <- c(rmse.sgarch.norm,
+                rmse.sgarch.snorm,
+                rmse.sgarch.std,
+                rmse.sgarch.sstd,
+                rmse.sgarch.ged,
+                rmse.sgarch.sged,
+               rmse.igarch.norm,
+                rmse.igarch.snorm,
+                rmse.igarch.std,
+                rmse.igarch.sstd,
+                rmse.igarch.ged,
+                rmse.igarch.sged,
+               rmse.egarch.norm,
+               rmse.egarch.snorm,
+               rmse.egarch.std,
+               rmse.egarch.sstd,
+               rmse.gjrgarch.norm,
+               rmse.gjrgarch.snorm,
+               rmse.gjrgarch.std,
+               rmse.gjrgarch.sstd,
+               rmse.gjrgarch.ged,
+               rmse.gjrgarch.sged,
+               rmse.aparch.norm,
+               rmse.arima)
+
+
+
+rmse.df <- data.frame(name = rmse.name, rmse = round(rmse.value, digits = 2))
+
+
+print(rmse.df[order(rmse.df$rmse),])
+
+```

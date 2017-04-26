@@ -1,0 +1,822 @@
+---
+title: "ARIMA+Garch Prediction Of weekly Gold kdjk----Appendix C"
+author: "Wu Wei"
+date: "2017-4-1"
+output: html_document
+---
+
+## 0. Preparation
+
+
+```{r Appendix 0.1, echo = FALSE}
+suppressMessages(library(forecast))
+suppressMessages(library(ggplot2))
+suppressMessages(library(rugarch))
+suppressMessages(library(tseries))
+suppressMessages(library(fBasics))
+suppressMessages(library(FinTS))
+
+```
+
+
+
+```{r Appendix 0.2, fig.height=8, fig.width=10}
+rm(list = ls())
+
+setwd("d://MyR//stock//")
+weekly.original.data <- read.csv("goldweekly.csv")
+
+weekly.kdj.k <- as.ts(tail(weekly.original.data[,7], 500))
+
+training.set <- head(weekly.kdj.k, 480)
+
+# tsdisplay(training.set)
+```
+
+```{r Appendix 0.3}
+mean(training.set)
+sd(training.set)
+skewness(training.set)
+kurtosis(training.set)
+jarqueberaTest(training.set)
+
+```
+
+## 1 Enfluence on Models of different training set 
+
+```{r Appendix 1.1}
+source("CompareGarchAic.r")
+```
+
+```{r Appendix 1.2, echo = TRUE, cache=TRUE}
+training.set.450 <- head(weekly.kdj.k, 450)
+CompareGarchAic(training.set.450, arg.difference = 0)
+
+```
+
+
+```{r Appendix 1.3, echo = TRUE, cache=TRUE, eval=TRUE}
+training.set.460 <- head(weekly.kdj.k, 460)
+CompareGarchAic(training.set.460, arg.difference = 0)
+
+```
+
+
+```{r Appendix 1.4, echo = TRUE, cache=TRUE, eval=TRUE}
+training.set.470 <- head(weekly.kdj.k, 470)
+CompareGarchAic(training.set.470, arg.difference = 0)
+
+```
+
+
+```{r Appendix 1.5, echo = TRUE, cache=TRUE, eval=TRUE}
+training.set.480 <- head(weekly.kdj.k, 480)
+CompareGarchAic(training.set.480, arg.difference = 0)
+
+```
+
+gjrgarch.norm and gjrgarch.sstd should be noticed.
+
+```{r Appendix 1.6, echo = TRUE, cache=TRUE, eval=TRUE}
+training.set.490 <- head(weekly.kdj.k, 490)
+CompareGarchAic(training.set.490, arg.difference = 0)
+
+```
+
+
+## 2 Comparison of Weekly Models 
+```{r appendix 2.2}
+source("CompareObjectZeroDiffAccuracy.R")
+
+comparison.period <- 20
+
+forecast.period <- 5
+
+training.set.endpoint <- length(weekly.kdj.k) - comparison.period - forecast.period
+
+maxorder <- 5
+```
+
+```{r appendix 2.2(2), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.arima.kdj.k <- CompareObjectZeroDiffAccuracy(arg.object = weekly.kdj.k,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+```
+
+
+
+```{r Appendix 2.2(3)}
+source("CompareGarchsignbias.r")
+```
+
+```{r Appendix 2.2(31), echo = TRUE, cache=TRUE, eval=TRUE}
+signbias.sGarchnorm <- CompareGarchsignbias(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "norm")
+print(signbias.sGarchnorm)
+
+```
+
+The leverage effect of the standardized residuals is not significant. So eGARCH/apGARCH are not used for modelling.
+
+```{r Appendix 2.2(32)}
+source("CompareGarchnyblom.r")
+```
+
+```{r Appendix 2.2(321), echo = TRUE, cache=TRUE, eval=TRUE}
+nyblom.sGarchnorm <- CompareGarchnyblom(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "norm")
+
+nyblom.sGarchnorm <- round(nyblom.sGarchnorm, digits = 2)
+print(nyblom.sGarchnorm)
+
+```
+
+
+```{r Appendix 2.2(331), echo = TRUE, cache=TRUE, eval=TRUE}
+nyblom.sGarchstd <- CompareGarchnyblom(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "std")
+
+nyblom.sGarchstd <- round(nyblom.sGarchstd, digits = 2)
+print(nyblom.sGarchstd)
+
+```
+
+```{r Appendix 2.2(34), echo = TRUE, cache=TRUE, eval=TRUE}
+
+nyblom.sGarchged <- CompareGarchnyblom(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "ged")
+
+nyblom.sGarchged <- round(nyblom.sGarchged, digits = 2)
+print(nyblom.sGarchged)
+
+```
+
+
+```{r Appendix 2.2(4)}
+source("CompareGarchgof.r")
+
+```
+
+
+```{r Appendix 2.2(41), echo = TRUE, cache=TRUE, eval=TRUE}
+
+gof.sGarchnorm <- CompareGarchgof(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "norm")
+print(gof.sGarchnorm)
+
+```
+
+So, norm distribution assumption can be accepted.
+
+
+```{r Appendix 2.2(5), echo = TRUE, cache=TRUE, eval=TRUE}
+gof.sGarchsnorm <- CompareGarchgof(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "snorm")
+print(gof.sGarchsnorm)
+
+```
+
+So, snorm distribution assumption can be accepted.
+
+```{r Appendix 2.2(6), echo = TRUE, cache=TRUE, eval=TRUE}
+
+gof.sGarchstd <- CompareGarchgof(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "std")
+print(gof.sGarchstd)
+
+```
+
+So, std distribution assumption can be accepted.
+
+```{r Appendix 2.2(7), echo = TRUE, cache=TRUE, eval=TRUE}
+
+gof.sGarchsstd <- CompareGarchgof(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "sstd")
+print(gof.sGarchsstd)
+
+```
+
+So, sstd distribution assumption can be accepted.
+
+```{r Appendix 2.2(8), echo = TRUE, cache=TRUE, eval=TRUE}
+
+gof.sGarchged <- CompareGarchgof(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "ged")
+print(gof.sGarchged)
+
+```
+
+So, ged distribution assumption can be accepted.
+
+```{r Appendix 2.2(9), echo = TRUE, cache=TRUE, eval=TRUE}
+
+gof.sGarchsged <- CompareGarchgof(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "sged")
+print(gof.sGarchsged)
+
+```
+
+So, sged distribution assumption can be accepted.
+
+## 3 Back test of Weekly Models 
+
+```{r appendix 3.1}
+source("CompareGarchAccuracy.R")
+
+
+```
+
+
+```{r appendix 3.2, echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.iGarchsged.kdj.k <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "sged")
+```
+
+```{r appendix 3.2(1), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.sGarchsged.kdj.k <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "sged")
+```
+
+
+```{r appendix 3.2(2), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.iGarchged.kdj.k <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "ged")
+```
+
+```{r appendix 3.2(3), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.sGarchged.kdj.k <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "ged")
+```
+
+
+```{r appendix 3.3, echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.iGarchnorm.kdj.k <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "norm")
+```
+
+```{r appendix 3.3(1), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.sGarchnorm.kdj.k <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "norm")
+```
+
+```{r appendix 3.3(11), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.gjrGarchnorm.kdj.k <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "gjrGARCH",
+                                                  arg.dist.model = "norm")
+```
+
+
+```{r appendix 3.3(2), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.iGarchsnorm.kdj.k <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "snorm")
+```
+
+```{r appendix 3.3(22), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.sGarchsnorm.kdj.k <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "snorm")
+```
+
+
+```{r appendix 3.3(3), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.iGarchstd.kdj.k <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "std")
+```
+
+```{r appendix 3.3(32), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.sGarchstd.kdj.k <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "std")
+```
+
+
+```{r appendix 3.3(4), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.iGarchsstd.kdj.k <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "sstd")
+```
+
+```{r appendix 3.3(42), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.sGarchsstd.kdj.k <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "sstd")
+```
+
+```{r appendix 3.3(41), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.gjrGarchsstd.kdj.k <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k,
+                                                  arg.var.model = "gjrGARCH",
+                                                  arg.dist.model = "sstd")
+```
+
+
+```{r appendix 3.3(5)}
+
+rmse.name <- c("iGarchsged",
+               "iGarchged",
+               "iGarchnorm",
+               "iGarchsnorm",
+               "iGarchstd",
+               "iGarchsstd",
+               "sGarchsged",
+               "sGarchged",
+               "sGarchnorm",
+               "sGarchsnorm",
+               "sGarchstd",
+               "sGarchsstd",
+               "gjrGarchnorm",
+               "gjrGarchsstd")
+
+rmseBT.count <- c(sum(result.iGarchsged.kdj.k$RMSE > result.arima.kdj.k$RMSE),
+                sum(result.iGarchged.kdj.k$RMSE > result.arima.kdj.k$RMSE),
+                sum(result.iGarchnorm.kdj.k$RMSE > result.arima.kdj.k$RMSE),
+                sum(result.iGarchsnorm.kdj.k$RMSE > result.arima.kdj.k$RMSE),
+                sum(result.iGarchstd.kdj.k$RMSE > result.arima.kdj.k$RMSE),
+                sum(result.iGarchsstd.kdj.k$RMSE > result.arima.kdj.k$RMSE),
+                
+                sum(result.sGarchsged.kdj.k$RMSE > result.arima.kdj.k$RMSE),
+                sum(result.sGarchged.kdj.k$RMSE > result.arima.kdj.k$RMSE),
+                sum(result.sGarchnorm.kdj.k$RMSE > result.arima.kdj.k$RMSE),
+                sum(result.sGarchsnorm.kdj.k$RMSE > result.arima.kdj.k$RMSE),
+                sum(result.sGarchstd.kdj.k$RMSE > result.arima.kdj.k$RMSE),
+                sum(result.sGarchsstd.kdj.k$RMSE > result.arima.kdj.k$RMSE),
+                
+                sum(result.gjrGarchnorm.kdj.k$RMSE > result.arima.kdj.k$RMSE),
+                sum(result.gjrGarchsstd.kdj.k$RMSE > result.arima.kdj.k$RMSE))
+
+rmse.meanvalue <- c(mean(result.iGarchsged.kdj.k$RMSE),
+                mean(result.iGarchged.kdj.k$RMSE),
+                mean(result.iGarchnorm.kdj.k$RMSE),
+                mean(result.iGarchsnorm.kdj.k$RMSE),
+                mean(result.iGarchstd.kdj.k$RMSE),
+                mean(result.iGarchsstd.kdj.k$RMSE),
+                
+                mean(result.sGarchsged.kdj.k$RMSE),
+                mean(result.sGarchged.kdj.k$RMSE),
+                mean(result.sGarchnorm.kdj.k$RMSE),
+                mean(result.sGarchsnorm.kdj.k$RMSE),
+                mean(result.sGarchstd.kdj.k$RMSE),
+                mean(result.sGarchsstd.kdj.k$RMSE),
+                
+                mean(result.gjrGarchnorm.kdj.k$RMSE),
+                mean(result.gjrGarchsstd.kdj.k$RMSE))
+
+rmse.df <- data.frame(name = rmse.name, CountrmseBTarima = rmseBT.count, meanvalue = round(rmse.meanvalue,digits = 2))
+
+
+print(rmse.df[order(rmse.df$CountrmseBTarima, rmse.df$meanvalue),])
+
+round(mean(result.arima.kdj.k$RMSE), digits = 2)
+
+```
+
+#### 4 Final comparison of pure Arima model with Garch models for 50 steps
+
+```{r appendix 4.1, echo = TRUE, cache=TRUE, eval=TRUE}
+
+comparison.period <- 50
+training.set.endpoint <- length(weekly.kdj.k) - comparison.period - forecast.period
+
+result.arima.kdj.k.50 <- CompareObjectZeroDiffAccuracy(arg.object = weekly.kdj.k,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+```
+
+```{r appendix 4.1(2), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.iGarchged.kdj.k.50 <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k.50,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "ged")
+```
+
+```{r appendix 4.1(3), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.sGarchged.kdj.k.50 <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k.50,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "ged")
+```
+
+```{r appendix 4.1(4), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.iGarchsged.kdj.k.50 <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k.50,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "sged")
+```
+
+```{r appendix 4.1(g), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.gjrGarchnorm.kdj.k.50 <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k.50,
+                                                  arg.var.model = "gjrGARCH",
+                                                  arg.dist.model = "norm")
+```
+
+```{r appendix 4.1(6)}
+
+rmse.name <- c("iGarchsged",
+               "iGarchged",
+               "sGarchged",
+               "gjrGarchnorm")
+
+rmseBT.count <- c(sum(result.iGarchsged.kdj.k.50$RMSE > result.arima.kdj.k.50$RMSE),
+                  sum(result.iGarchged.kdj.k.50$RMSE > result.arima.kdj.k.50$RMSE),
+                  sum(result.sGarchged.kdj.k.50$RMSE > result.arima.kdj.k.50$RMSE),
+                  sum(result.gjrGarchnorm.kdj.k.50$RMSE > result.arima.kdj.k.50$RMSE))
+
+rmse.meanvalue <- c(mean(result.iGarchsged.kdj.k.50$RMSE),
+                    mean(result.iGarchged.kdj.k.50$RMSE),
+                    mean(result.sGarchged.kdj.k.50$RMSE),
+                    mean(result.gjrGarchnorm.kdj.k.50$RMSE))
+
+rmse.df <- data.frame(name = rmse.name, CountrmseBTarima = rmseBT.count, meanvalue = round(rmse.meanvalue,digits = 2))
+
+
+print(rmse.df[order(rmse.df$CountrmseBTarima, rmse.df$meanvalue),])
+
+round(mean(result.arima.kdj.k.50$RMSE), digits = 2)
+
+```
+
+
+
+```{r appendix 4.2, echo = TRUE, cache=FALSE, eval=TRUE}
+t.test(result.iGarchged.kdj.k.50$RMSE - result.arima.kdj.k.50$RMSE)
+
+summary(result.iGarchged.kdj.k.50$RMSE)
+
+summary(result.arima.kdj.k.50$RMSE)
+
+final.result.kdj.k <- cbind(result.arima.kdj.k.50, result.iGarchged.kdj.k.50)
+
+
+final.result.kdj.k <- final.result.kdj.k[, -c(8)]
+
+colnames(final.result.kdj.k) <- c("seq", "p","d","q", "dr","RMSE.arima", "p.v",
+                             "RMSE.iGarchsstd", "Q.p","Q.p^2","LM.p")
+
+print(final.result.kdj.k)
+
+sum(final.result.kdj.k$RMSE.arima > final.result.kdj.k$RMSE.iGarchsstd)
+
+sum(final.result.kdj.k$p.v >= 0.05)
+
+
+```
+
+```{r appendix 4.2(2), echo = TRUE, cache=FALSE, eval=TRUE}
+t.test(result.sGarchged.kdj.k.50$RMSE - result.arima.kdj.k.50$RMSE)
+
+summary(result.sGarchged.kdj.k.50$RMSE)
+
+summary(result.arima.kdj.k.50$RMSE)
+
+final.result.kdj.k <- cbind(result.arima.kdj.k.50, result.sGarchged.kdj.k.50)
+
+
+final.result.kdj.k <- final.result.kdj.k[, -c(8)]
+
+colnames(final.result.kdj.k) <- c("seq", "p","d","q", "dr","RMSE.arima", "p.v",
+                            "RMSE.sGarchsstd", "Q.p","Q.p^2","LM.p")
+
+print(final.result.kdj.k)
+
+sum(final.result.kdj.k$RMSE.arima > final.result.kdj.k$RMSE.sGarchsstd)
+
+sum(final.result.kdj.k$p.v >= 0.05)
+
+
+```
+
+```{r appendix 4.2(3), echo = TRUE, cache=FALSE, eval=TRUE}
+t.test(result.iGarchsged.kdj.k.50$RMSE - result.arima.kdj.k.50$RMSE)
+
+summary(result.iGarchsged.kdj.k.50$RMSE)
+
+summary(result.arima.kdj.k.50$RMSE)
+
+final.result.kdj.k <- cbind(result.arima.kdj.k.50, result.iGarchsged.kdj.k.50)
+
+
+final.result.kdj.k <- final.result.kdj.k[, -c(8)]
+
+colnames(final.result.kdj.k) <- c("seq", "p","d","q", "dr","RMSE.arima", "p.v",
+                            "RMSE.iGarchsged", "Q.p","Q.p^2","LM.p")
+
+print(final.result.kdj.k)
+
+sum(final.result.kdj.k$RMSE.arima > final.result.kdj.k$RMSE.iGarchsged)
+
+sum(final.result.kdj.k$p.v >= 0.05)
+
+
+```
+
+```{r appendix 4.2(4), echo = TRUE, cache=FALSE, eval=TRUE}
+result.gjrGarchnorm.kdj.k.50
+
+t.test(result.gjrGarchnorm.kdj.k.50$RMSE - result.arima.kdj.k.50$RMSE)
+
+summary(result.gjrGarchnorm.kdj.k.50$RMSE)
+
+summary(result.arima.kdj.k.50$RMSE)
+
+final.result.kdj.k <- cbind(result.arima.kdj.k.50, result.gjrGarchnorm.kdj.k.50)
+
+
+final.result.kdj.k <- final.result.kdj.k[, -c(8)]
+
+colnames(final.result.kdj.k) <- c("seq", "p","d","q", "dr","RMSE.arima", "p.v",
+                            "RMSE.gjrGarchnorm", "Q.p","Q.p^2","LM.p")
+
+print(final.result.kdj.k)
+
+sum(final.result.kdj.k$RMSE.arima > final.result.kdj.k$RMSE.gjrGarchnorm)
+
+sum(final.result.kdj.k$p.v >= 0.05)
+
+
+```
+
+There is no obvious advantage to use Garch model for predicting weekly kdj.k.
+
+
+#### 5 Final comparison of pure Arima model with Garch models for 40 steps
+
+```{r appendix 5.1, echo = TRUE, cache=TRUE, eval=TRUE}
+
+comparison.period <- 40
+training.set.endpoint <- length(weekly.kdj.k) - comparison.period - forecast.period
+
+result.arima.kdj.k.40 <- CompareObjectZeroDiffAccuracy(arg.object = weekly.kdj.k,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+```
+
+```{r appendix 5.2, echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.gjrGarchnorm.kdj.k.40 <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k.40,
+                                                  arg.var.model = "gjrGARCH",
+                                                  arg.dist.model = "norm")
+```
+
+```{r appendix 5.3, echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.iGarchged.kdj.k.40 <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k.40,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "ged")
+```
+
+```{r appendix 5.4, echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.sGarchged.kdj.k.40 <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k.40,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "ged")
+```
+
+```{r appendix 5.5, echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.iGarchsged.kdj.k.40 <- CompareGarchAccuracy(arg.object = weekly.kdj.k,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.kdj.k.40,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "sged")
+```
+
+```{r appendix 5.6}
+
+rmse.name <- c("iGarchsged",
+               "iGarchged",
+               "sGarchged",
+               "gjrGarchnorm")
+
+rmseBT.count <- c(sum(result.iGarchsged.kdj.k.40$RMSE > result.arima.kdj.k.40$RMSE),
+                  sum(result.iGarchged.kdj.k.40$RMSE > result.arima.kdj.k.40$RMSE),
+                  sum(result.sGarchged.kdj.k.40$RMSE > result.arima.kdj.k.40$RMSE),
+                  sum(result.gjrGarchnorm.kdj.k.40$RMSE > result.arima.kdj.k.40$RMSE))
+
+rmse.meanvalue <- c(mean(result.iGarchsged.kdj.k.40$RMSE),
+                    mean(result.iGarchged.kdj.k.40$RMSE),
+                    mean(result.sGarchged.kdj.k.40$RMSE),
+                    mean(result.gjrGarchnorm.kdj.k.40$RMSE))
+
+rmse.df <- data.frame(name = rmse.name, CountrmseBTarima = rmseBT.count, meanvalue = round(rmse.meanvalue,digits = 2))
+
+
+print(rmse.df[order(rmse.df$CountrmseBTarima, rmse.df$meanvalue),])
+
+round(mean(result.arima.kdj.k.40$RMSE), digits = 2)
+
+```
+
+
+```{r appendix 5.7, echo = TRUE, cache=FALSE, eval=TRUE}
+result.gjrGarchnorm.kdj.k.40
+
+t.test(result.gjrGarchnorm.kdj.k.40$RMSE - result.arima.kdj.k.40$RMSE)
+
+summary(result.gjrGarchnorm.kdj.k.40$RMSE)
+
+summary(result.arima.kdj.k.40$RMSE)
+
+final.result.kdj.k <- cbind(result.arima.kdj.k.40, result.gjrGarchnorm.kdj.k.40)
+
+
+final.result.kdj.k <- final.result.kdj.k[, -c(8)]
+
+colnames(final.result.kdj.k) <- c("seq", "p","d","q", "dr","RMSE.arima", "p.v",
+                            "RMSE.gjrGarchnorm", "Q.p","Q.p^2","LM.p")
+
+print(final.result.kdj.k)
+
+sum(final.result.kdj.k$RMSE.arima > final.result.kdj.k$RMSE.gjrGarchnorm)
+
+sum(final.result.kdj.k$p.v >= 0.05)
+
+
+```

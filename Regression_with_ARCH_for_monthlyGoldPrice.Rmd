@@ -1,0 +1,521 @@
+---
+title: "ARIMA+Garch Prediction Of monthly Gold close.price----Appendix D"
+author: "Wu Wei"
+date: "2017-4-6"
+output: html_document
+---
+
+## 1. Preparation
+
+
+```{r Appendix 1.1, echo = FALSE}
+suppressMessages(library(forecast))
+suppressMessages(library(ggplot2))
+suppressMessages(library(rugarch))
+suppressMessages(library(tseries))
+suppressMessages(library(fBasics))
+
+```
+
+
+
+```{r Appendix 1.2, fig.height=8, fig.width=10}
+rm(list = ls())
+
+setwd("d://MyR//stock//")
+monthly.original.data <- read.csv("goldmonthly.csv")
+
+monthly.close.price <- monthly.original.data[,5]
+
+training.set <- head(monthly.close.price, length(monthly.close.price) - 20)
+
+# tsdisplay(training.set)
+```
+
+```{r Appendix 1.3}
+mean(training.set)
+sd(training.set)
+skewness(training.set)
+kurtosis(training.set)
+jarqueberaTest(training.set)
+
+```
+
+## 2 Comparison of monthly Models 
+
+```{r Appendix 2.1, echo = TRUE, cache=TRUE}
+source("CompareGarchAic.r")
+
+CompareGarchAic(training.set, arg.difference = 1)
+
+```
+
+```{r appendix 2.2, echo = TRUE, cache=FALSE, eval=TRUE}
+source("CompareObjectAccuracy.R")
+
+comparison.period <- 20
+
+forecast.period <- 5
+
+training.set.endpoint <- length(monthly.close.price) - comparison.period - forecast.period
+
+maxorder <- 5
+```
+
+```{r appendix 2.2(2), echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+result.arima.close.price <- CompareObjectAccuracy(arg.object = monthly.close.price,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+```
+
+
+```{r Appendix 2.2(3), echo = TRUE, cache=TRUE, eval=TRUE}
+source("CompareGarchsignbias.r")
+
+signbias.sGarchnorm <- CompareGarchsignbias(arg.object = diff(monthly.close.price),
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima.close.price,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "norm")
+print(signbias.sGarchnorm)
+
+```
+
+The leverage effect of the standardized residuals is not significant. So gjrGARCH/eGARCH/apGARCH are not used for modelling.
+
+```{r Appendix 2.2(4), echo = TRUE, cache=TRUE, eval=FALSE}
+source("CompareGarchgof.r")
+
+gof.sGarchnorm <- CompareGarchgof(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "norm")
+print(gof.sGarchnorm)
+
+```
+
+So, norm distribution assumption can be accepted.
+
+```{r Appendix 2.2(5), echo = TRUE, cache=TRUE, eval=FALSE}
+source("CompareGarchgof.r")
+
+gof.sGarchsnorm <- CompareGarchgof(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "snorm")
+print(gof.sGarchsnorm)
+
+```
+
+So, snorm distribution assumption can be accepted.
+
+```{r Appendix 2.2(6), echo = TRUE, cache=TRUE, eval=FALSE}
+source("CompareGarchgof.r")
+
+gof.sGarchstd <- CompareGarchgof(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "std")
+print(gof.sGarchstd)
+
+```
+
+So, std distribution assumption can be accepted.
+
+```{r Appendix 2.2(7), echo = TRUE, cache=TRUE, eval=FALSE}
+source("CompareGarchgof.r")
+
+gof.sGarchsstd <- CompareGarchgof(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "sstd")
+print(gof.sGarchsstd)
+
+```
+
+So, sstd distribution assumption can be accepted.
+
+```{r Appendix 2.2(8), echo = TRUE, cache=TRUE, eval=FALSE}
+source("CompareGarchgof.r")
+
+gof.sGarchged <- CompareGarchgof(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "ged")
+print(gof.sGarchged)
+
+```
+
+So, ged distribution assumption can be accepted.
+
+```{r Appendix 2.2(9), echo = TRUE, cache=TRUE, eval=FALSE}
+source("CompareGarchgof.r")
+
+gof.sGarchsged <- CompareGarchgof(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "sged")
+print(gof.sGarchsged)
+
+```
+
+So, sged distribution assumption can be accepted.
+
+## 3 Back test of monthly Models 
+
+```{r appendix 3.1, echo = TRUE, cache=FALSE, eval=FALSE}
+source("CompareGarchAccuracy.R")
+
+
+```
+
+
+```{r appendix 3.2, echo = TRUE, cache=TRUE, eval=FALSE}
+
+
+result.iGarchsged.close.price <- CompareGarchAccuracy(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "sged")
+```
+
+```{r appendix 3.2(1), echo = TRUE, cache=TRUE, eval=FALSE}
+
+
+result.sGarchsged.close.price <- CompareGarchAccuracy(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "sged")
+```
+
+
+```{r appendix 3.2(2), echo = TRUE, cache=TRUE, eval=FALSE}
+
+
+result.iGarchged.close.price <- CompareGarchAccuracy(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "ged")
+```
+
+```{r appendix 3.2(3), echo = TRUE, cache=TRUE, eval=FALSE}
+
+
+result.sGarchged.close.price <- CompareGarchAccuracy(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "ged")
+```
+
+
+```{r appendix 3.3, echo = TRUE, cache=TRUE, eval=FALSE}
+
+
+result.iGarchnorm.close.price <- CompareGarchAccuracy(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "norm")
+```
+
+```{r appendix 3.3(1), echo = TRUE, cache=TRUE, eval=FALSE}
+
+
+result.sGarchnorm.close.price <- CompareGarchAccuracy(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "norm")
+```
+
+
+```{r appendix 3.3(2), echo = TRUE, cache=TRUE, eval=FALSE}
+
+
+result.iGarchsnorm.close.price <- CompareGarchAccuracy(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "snorm")
+```
+
+```{r appendix 3.3(22), echo = TRUE, cache=TRUE, eval=FALSE}
+
+
+result.sGarchsnorm.close.price <- CompareGarchAccuracy(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "snorm")
+```
+
+
+```{r appendix 3.3(3), echo = TRUE, cache=TRUE, eval=FALSE}
+
+
+result.iGarchstd.close.price <- CompareGarchAccuracy(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "std")
+```
+
+```{r appendix 3.3(32), echo = TRUE, cache=TRUE, eval=FALSE}
+
+
+result.sGarchstd.close.price <- CompareGarchAccuracy(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "std")
+```
+
+
+```{r appendix 3.3(4), echo = TRUE, cache=TRUE, eval=FALSE}
+
+
+result.iGarchsstd.close.price <- CompareGarchAccuracy(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "sstd")
+```
+
+```{r appendix 3.3(42), echo = TRUE, cache=TRUE, eval=FALSE}
+
+
+result.sGarchsstd.close.price <- CompareGarchAccuracy(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "sstd")
+```
+
+
+```{r appendix 3.3(5), echo = TRUE, cache=FALSE, eval=FALSE}
+
+rmse.name <- c("iGarchsged",
+               "iGarchged",
+               "iGarchnorm",
+               "iGarchsnorm",
+               "iGarchstd",
+               "iGarchsstd",
+               "sGarchsged",
+               "sGarchged",
+               "sGarchnorm",
+               "sGarchsnorm",
+               "sGarchstd",
+               "sGarchsstd")
+
+rmseBT.count <- c(sum(result.iGarchsged.close.price$RMSE > result.arima.close.price$RMSE),
+                sum(result.iGarchged.close.price$RMSE > result.arima.close.price$RMSE),
+                sum(result.iGarchnorm.close.price$RMSE > result.arima.close.price$RMSE),
+                sum(result.iGarchsnorm.close.price$RMSE > result.arima.close.price$RMSE),
+                sum(result.iGarchstd.close.price$RMSE > result.arima.close.price$RMSE),
+                sum(result.iGarchsstd.close.price$RMSE > result.arima.close.price$RMSE),
+                
+                sum(result.sGarchsged.close.price$RMSE > result.arima.close.price$RMSE),
+                sum(result.sGarchged.close.price$RMSE > result.arima.close.price$RMSE),
+                sum(result.sGarchnorm.close.price$RMSE > result.arima.close.price$RMSE),
+                sum(result.sGarchsnorm.close.price$RMSE > result.arima.close.price$RMSE),
+                sum(result.sGarchstd.close.price$RMSE > result.arima.close.price$RMSE),
+                sum(result.sGarchsstd.close.price$RMSE > result.arima.close.price$RMSE))
+
+rmse.meanvalue <- c(mean(result.iGarchsged.close.price$RMSE),
+                mean(result.iGarchged.close.price$RMSE),
+                mean(result.iGarchnorm.close.price$RMSE),
+                mean(result.iGarchsnorm.close.price$RMSE),
+                mean(result.iGarchstd.close.price$RMSE),
+                mean(result.iGarchsstd.close.price$RMSE),
+                
+                mean(result.sGarchsged.close.price$RMSE),
+                mean(result.sGarchged.close.price$RMSE),
+                mean(result.sGarchnorm.close.price$RMSE),
+                mean(result.sGarchsnorm.close.price$RMSE),
+                mean(result.sGarchstd.close.price$RMSE),
+                mean(result.sGarchsstd.close.price$RMSE))
+
+rmse.df <- data.frame(name = rmse.name, CountrmseBTarima = rmseBT.count, meanvalue = rmse.meanvalue)
+
+
+print(rmse.df[order(rmse.df$CountrmseBTarima),])
+
+
+```
+
+#### 4 Final comparison of pure Arima model with Garch models
+
+```{r appendix 4.1, echo = TRUE, cache=TRUE, eval=FALSE}
+
+comparison.period <- 50
+training.set.endpoint <- length(monthly.close.price) - comparison.period - forecast.period
+
+result.arima.close.price.50 <- CompareObjectZeroDiffAccuracy(arg.object = monthly.close.price,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+```
+
+```{r appendix 4.1(2), echo = TRUE, cache=TRUE, eval=FALSE}
+
+
+result.iGarchsstd.close.price.50 <- CompareGarchAccuracy(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price.50,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "sstd")
+```
+
+```{r appendix 4.1(3), echo = TRUE, cache=TRUE, eval=FALSE}
+
+
+result.sGarchsstd.close.price.50 <- CompareGarchAccuracy(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price.50,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "sstd")
+```
+
+```{r appendix 4.1(4), echo = TRUE, cache=TRUE, eval=FALSE}
+
+
+result.iGarchsged.close.price.50 <- CompareGarchAccuracy(arg.object = monthly.close.price,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima.close.price = result.arima.close.price.50,
+                                                  arg.var.model = "iGARCH",
+                                                  arg.dist.model = "sged")
+```
+
+
+```{r appendix 4.2, echo = TRUE, cache=FALSE, eval=FALSE}
+t.test(result.iGarchsstd.close.price.50$RMSE - result.arima.close.price.50$RMSE)
+
+summary(result.iGarchsstd.close.price.50$RMSE)
+
+summary(result.arima.close.price.50$RMSE)
+
+final.result.close.price <- cbind(result.arima.close.price.50, result.iGarchsstd.close.price.50)
+
+
+final.result.close.price <- final.result.close.price[, -c(8)]
+
+colnames(final.result.close.price) <- c("seq", "p","d","q", "dr","RMSE.arima", "p.v",
+                            "p","q", "RMSE.iGarchsstd")
+
+print(final.result.close.price)
+
+sum(final.result.close.price$RMSE.arima > final.result.close.price$RMSE.iGarchsstd)
+
+sum(final.result.close.price$p.v >= 0.05)
+
+
+```
+
+```{r appendix 4.2(2), echo = TRUE, cache=FALSE, eval=FALSE}
+t.test(result.sGarchsstd.close.price.50$RMSE - result.arima.close.price.50$RMSE)
+
+summary(result.sGarchsstd.close.price.50$RMSE)
+
+summary(result.arima.close.price.50$RMSE)
+
+final.result.close.price <- cbind(result.arima.close.price.50, result.sGarchsstd.close.price.50)
+
+
+final.result.close.price <- final.result.close.price[, -c(8)]
+
+colnames(final.result.close.price) <- c("seq", "p","d","q", "dr","RMSE.arima", "p.v",
+                            "p","q", "RMSE.sGarchsstd")
+
+print(final.result.close.price)
+
+sum(final.result.close.price$RMSE.arima > final.result.close.price$RMSE.sGarchsstd)
+
+sum(final.result.close.price$p.v >= 0.05)
+
+
+```
+
+```{r appendix 4.2(3), echo = TRUE, cache=FALSE, eval=FALSE}
+t.test(result.iGarchsged.close.price.50$RMSE - result.arima.close.price.50$RMSE)
+
+summary(result.iGarchsged.close.price.50$RMSE)
+
+summary(result.arima.close.price.50$RMSE)
+
+final.result.close.price <- cbind(result.arima.close.price.50, result.iGarchsged.close.price.50)
+
+
+final.result.close.price <- final.result.close.price[, -c(8)]
+
+colnames(final.result.close.price) <- c("seq", "p","d","q", "dr","RMSE.arima", "p.v",
+                            "p","q", "RMSE.iGarchsged")
+
+print(final.result.close.price)
+
+sum(final.result.close.price$RMSE.arima > final.result.close.price$RMSE.iGarchsged)
+
+sum(final.result.close.price$p.v >= 0.05)
+
+
+```
+
+There is no obvious advantage to use Garch model for predicting monthly close.price.

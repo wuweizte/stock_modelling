@@ -1,7 +1,7 @@
 ---
 title: "ARIMA Prediction Of Gold--Result"
 author: "Wu Wei"
-date: "2017-2-13"
+date: "2017-4-2"
 output: html_document
 ---
 
@@ -11,6 +11,7 @@ output: html_document
 ```{r library, echo = FALSE}
 suppressMessages(library(forecast))
 suppressMessages(library(ggplot2))
+suppressMessages(library(FinTS))
 ```
 
 ### 1. Forecast result of monthly kdj.d and monthly gold price
@@ -28,7 +29,7 @@ monthly.kdj.d <- as.ts(monthly.original.data[,8])
 
 
 
-```{r main 1.2, fig.height=6, fig.width=10, echo = TRUE, cache=FALSE}
+```{r main 1.2, fig.height=6, fig.width=10, echo = TRUE, cache=TRUE}
 source("DrawMonthlyKDJDForecastPlot.R")
 
 DrawMonthlyKDJDForecastPlot(monthly.close.price,
@@ -55,9 +56,9 @@ DrawMonthlyPriceForecastPlot(monthly.close.price,
 
 It can be seen from monthly KDJ.D that the long-term decreasing trend has stopped, which means that the chance of earning money is not decreasing. It is a neutral signal, which can stimulate money come in mildly. 
         
-### Forecast result of Weekly kdj.d and Weekly gold price
+### 2. Forecast result of Weekly kdj.d and Weekly gold price
 
-```{r, echo = TRUE}
+```{r main 2.1, echo = TRUE}
 rm(list = ls())
 
 setwd("d://MyR//stock//")
@@ -70,19 +71,32 @@ weekly.kdj.d <- as.ts(weekly.original.data[,8])
 
 
 
-```{r, fig.height=12, fig.width=10, echo = TRUE, cache=TRUE}
-# source("DrawWeeklyKDJDForecastPlot.R")
-# DrawWeeklyKDJDForecastPlot(weekly.close.price,
-#                            weekly.kdj.k,
-#                            weekly.kdj.d,
-#                            arg.forecast.period = 5,
-#                            arg.ylabel.offset = 80,
-#                            arg.xlim.offset = 80,
-#                            arg.regression.offset = 500,
-#                            arg.date = weekly.original.data[, 1])
+```{r main 2.2, fig.height=6, fig.width=10, echo = TRUE, cache=TRUE}
+source("DrawWeeklyKDJDForecastPlot.R")
+DrawWeeklyKDJDForecastPlot(weekly.close.price,
+                           weekly.kdj.k,
+                           weekly.kdj.d,
+                           arg.forecast.period = 5,
+                           arg.ylabel.offset = 80,
+                           arg.xlim.offset = 80,
+                           arg.regression.offset = 500,
+                           arg.date = weekly.original.data[, 1])
 
 ```
         
+```{r main 2.3, fig.height=6, fig.width=10, echo = TRUE, cache=TRUE}
+source("DrawWeeklyPriceForecastPlot.R")
+
+DrawWeeklyPriceForecastPlot(weekly.close.price,
+                            weekly.kdj.k,
+                            weekly.kdj.d,
+                            arg.forecast.period = 5,
+                            arg.ylabel.offset = 80,
+                            arg.xlim.offset = 80,
+                            arg.regression.offset = 500,
+                            arg.date = weekly.original.data[, 1])
+```
+
 
 ## 3. Verification for Monthly Models 
 
@@ -98,23 +112,23 @@ monthly.kdj.d <- as.ts(monthly.original.data[,8])
 ```
 
 
-```{r Monthly Verification--Model, cache=FALSE}
+```{r Monthly Verification--Model, cache=FALSE, eval=TRUE}
 
-fit.arima.kdj.d <- auto.arima(monthly.kdj.d,
+(fit.arima.kdj.d <- auto.arima(monthly.kdj.d,
                               max.order = 5,
                               stepwise = FALSE,
-                              approximation = FALSE)
+                              approximation = FALSE))
 
-fit.arima.kdj.k <- auto.arima(monthly.kdj.k,
+(fit.arima.kdj.k <- auto.arima(monthly.kdj.k,
                               max.order = 5,
                               d = 0,
                               stepwise = FALSE,
-                              approximation = FALSE)
+                              approximation = FALSE))
 
-fit.arima.price <- auto.arima(monthly.close.price, 
+(fit.arima.price <- auto.arima(monthly.close.price, 
                         stepwise = FALSE, 
                         approximation = FALSE,
-                        max.order = 5)
+                        max.order = 9))   ### if p value < 0.05, set to 9
 
 ```
 
@@ -122,7 +136,7 @@ fit.arima.price <- auto.arima(monthly.close.price,
 ### 3.1 White Noise Test
 
 
-```{r Monthly Verification--White Noise Test, cache=FALSE}
+```{r Monthly Verification--White Noise Test, cache=FALSE, eval=TRUE}
 
 Box.test(residuals(fit.arima.kdj.d), lag=10, fitdf=sum(fit.arima.kdj.d$arma[c(1,2)]), type = "Lj")
 
@@ -134,7 +148,7 @@ Box.test(residuals(fit.arima.price), lag=10, fitdf=sum(fit.arima.price$arma[c(1,
 
 ### 3.2  Relationship Between Residuals And Time
 
-```{r Monthly Verification--Relationship Between Residuals And Time, fig.height=6, fig.width=10, cache=FALSE}
+```{r main 3.2, fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
 
 plot(residuals(fit.arima.kdj.d), axes = TRUE, main = "Arima( Monthly KDJ.D )")
 abline(h = 0, col = "red")
@@ -148,7 +162,7 @@ abline(h = 0, col = "red")
 
 ### 3.3 Relationship Between Residuals And Fitted Value
 
-```{r Monthly Verification--Relationship Between Residuals And Fitted Value, fig.height=6, fig.width=10}
+```{r main 3.3, fig.height=6, fig.width=10, eval=TRUE}
 
 plot(as.numeric(residuals(fit.arima.kdj.d)) ~ as.numeric(fitted(fit.arima.kdj.d)),
      main = "Arima( Monthly KDJ.D )")
@@ -167,7 +181,7 @@ abline(h = 0, col = "red")
 
 ### 3.4 Normality of Residuals
 
-```{r Monthly Verification--Normality of Residuals, fig.height=6, fig.width=10}
+```{r Monthly Verification--Normality of Residuals, fig.height=6, fig.width=10, eval=TRUE}
 
 qqnorm(residuals(fit.arima.kdj.d), main = "Arima( Monthly KDJ.D )")
 qqline(residuals(fit.arima.kdj.d))
@@ -183,12 +197,135 @@ qqline(residuals(fit.arima.price))
 ### 3.5 ARCH Effect Test
 
 
-```{r Monthly Verification 3.5}
+```{r Monthly Verification 3.5, eval=TRUE}
 
 Box.test((residuals(fit.arima.kdj.d))^2, lag=10, fitdf=sum(fit.arima.kdj.d$arma[c(1,2)]), type = "Lj")
+ArchTest(residuals(fit.arima.kdj.d))
 
 Box.test((residuals(fit.arima.kdj.k))^2, lag=10, fitdf=sum(fit.arima.kdj.k$arma[c(1,2)]), type = "Lj")
+ArchTest(residuals(fit.arima.kdj.k))
 
 Box.test((residuals(fit.arima.price))^2, lag=10, fitdf=sum(fit.arima.price$arma[c(1,2)]), type = "Lj")
+ArchTest(residuals(fit.arima.price))
+
+
+```
+
+## 4. Verification for Weekly Models 
+
+```{r Weekly Verification--library, echo = TRUE}
+rm(list = ls())
+
+setwd("d://MyR//stock//")
+weekly.original.data <- read.csv("goldweekly.csv")
+
+weekly.close.price <- as.ts(weekly.original.data[,5])
+weekly.kdj.k <- as.ts(weekly.original.data[,7])
+weekly.kdj.d <- as.ts(weekly.original.data[,8])
+```
+
+
+```{r weekly Verification--Model, cache=FALSE, eval=TRUE}
+
+kdj.d.data <- window(weekly.kdj.d, start = length(weekly.kdj.d) - 500)
+kdj.k.data <- window(weekly.kdj.k, start = length(weekly.kdj.k) - 500)
+close.price.data <- window(weekly.close.price, 
+                           start = length(weekly.close.price) - 500)
+
+fit.arima.kdj.d <- auto.arima(kdj.d.data,
+                              max.order = 5,
+                              d = 0,
+                              stepwise = FALSE,
+                              approximation = FALSE)
+
+fit.arima.kdj.k <- auto.arima(kdj.k.data,
+                              max.order = 5,
+                              d = 0,
+                              stepwise = FALSE,
+                              approximation = FALSE)
+
+fit.arima.price <- auto.arima(close.price.data, 
+                        stepwise = FALSE, 
+                        approximation = FALSE,
+                        max.order = 5)
+
+```
+
+
+### 4.1 White Noise Test
+
+
+```{r 4.1, cache=FALSE, eval=TRUE}
+
+Box.test(residuals(fit.arima.kdj.d), lag=10, fitdf=sum(fit.arima.kdj.d$arma[c(1,2)]), type = "Lj")
+
+Box.test(residuals(fit.arima.kdj.k), lag=10, fitdf=sum(fit.arima.kdj.k$arma[c(1,2)]), type = "Lj")
+
+Box.test(residuals(fit.arima.price), lag=10, fitdf=sum(fit.arima.price$arma[c(1,2)]), type = "Lj")
+
+```
+
+### 4.2  Relationship Between Residuals And Time
+
+```{r main 4.2, fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
+
+plot(residuals(fit.arima.kdj.d), axes = TRUE, main = "Arima( Weekly KDJ.D )")
+abline(h = 0, col = "red")
+
+plot(residuals(fit.arima.kdj.k), axes = TRUE, main = "Arima( Weekly KDJ.K )")
+abline(h = 0, col = "red")
+
+plot(residuals(fit.arima.price), axes = TRUE, main = "Arima( Weekly Price )")
+abline(h = 0, col = "red")
+```
+
+### 4.3 Relationship Between Residuals And Fitted Value
+
+```{r main 4.3, fig.height=6, fig.width=10, eval=TRUE}
+
+plot(as.numeric(residuals(fit.arima.kdj.d)) ~ as.numeric(fitted(fit.arima.kdj.d)),
+     main = "Arima( Weekly KDJ.D )")
+abline(h = 0, col = "red")
+
+plot(as.numeric(residuals(fit.arima.kdj.k)) ~ as.numeric(fitted(fit.arima.kdj.k)),
+     main = "Arima( Weekly KDJ.K )")
+abline(h = 0, col = "red")
+
+plot(as.numeric(residuals(fit.arima.price)) ~ as.numeric(fitted(fit.arima.price)),
+     main = "Arima( Weekly Price )")
+abline(h = 0, col = "red")
+
+```
+
+
+### 4.4 Normality of Residuals
+
+```{r main 4.4, fig.height=6, fig.width=10, eval=TRUE}
+
+qqnorm(residuals(fit.arima.kdj.d), main = "Arima( Weekly KDJ.D )")
+qqline(residuals(fit.arima.kdj.d))
+
+qqnorm(residuals(fit.arima.kdj.k), main = "Arima( Weekly KDJ.K )")
+qqline(residuals(fit.arima.kdj.k))
+
+qqnorm(residuals(fit.arima.price), main = "Arima( Weekly Price )")
+qqline(residuals(fit.arima.price))
+
+```
+
+### 4.5 ARCH Effect Test
+
+
+```{r main 4.5, eval=TRUE}
+
+Box.test((residuals(fit.arima.kdj.d))^2, lag=10, fitdf=sum(fit.arima.kdj.d$arma[c(1,2)]), type = "Lj")
+ArchTest(residuals(fit.arima.kdj.d))
+
+Box.test((residuals(fit.arima.kdj.k))^2, lag=10, fitdf=sum(fit.arima.kdj.k$arma[c(1,2)]), type = "Lj")
+ArchTest(residuals(fit.arima.kdj.k))
+
+Box.test((residuals(fit.arima.price))^2, lag=10, fitdf=sum(fit.arima.price$arma[c(1,2)]), type = "Lj")
+ArchTest(residuals(fit.arima.price))
+
 
 ```

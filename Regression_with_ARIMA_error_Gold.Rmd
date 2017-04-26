@@ -18,7 +18,7 @@ suppressMessages(library(ggplot2))
 
 #### 1.1 Forecast relationship between monthly gold price and other variables
 
-```{r appendix 1.1-1, echo = TRUE, cache=TRUE}
+```{r appendix 1.1-1, echo = TRUE}
 rm(list = ls())
 
 setwd("d://MyR//stock//")
@@ -811,6 +811,9 @@ print(final.result.close.price)
 
 sum(final.result.close.price$RMSE > final.result.close.price$RMSE2)
 
+sum(final.result.close.price$p.v > 0.05)
+sum(final.result.close.price$p.v2 > 0.05)
+
 ```
 
 It can be concluded that hybrid model with Arima model and naive model is well for predicting monthly gold price.
@@ -1537,6 +1540,10 @@ print(final.result.kdj.d)
 
 sum(final.result.kdj.d$RMSE > final.result.kdj.d$RMSE2)
 
+sum(final.result.kdj.d$p.v > 0.05)
+
+sum(final.result.kdj.d$p.v2 > 0.05)
+
 ```
 
 It can be concluded that hybrid model with Arima model and naive model is not needed for predicting monthly kdj.d.
@@ -1589,6 +1596,66 @@ sum(final.result.kdj.d$RMSE > final.result.kdj.d$RMSE2)
 sum(final.result.kdj.d$p.v >= 0.05)
 
 sum(final.result.kdj.d$p.v2 >= 0.05)
+
+```
+
+#### 2.8 Comparison of pure Arima model of monthly kdj.d with Determination model by estimated kdj.k
+
+```{r appendix 2.8, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+setwd("d://MyR//stock//")
+
+source("CompareKDJDEstimatedKDJKXregAccuracy.R")
+
+comparison.period <- 20
+
+forecast.period <- 5
+
+training.set.endpoint <- length(monthly.kdj.d) - comparison.period - forecast.period
+
+maxorder <- 5
+```
+
+```{r appendix 2.8(2), fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+result.deternimination.kdj.d <- 
+        CompareKDJDEstimatedKDJKXregAccuracy(arg.object = monthly.kdj.d,
+                                             arg.forecast.period = forecast.period,
+                                             arg.training.set.endpoint = training.set.endpoint,
+                                             arg.comparison.period = comparison.period,
+                                             arg.maxorder = maxorder,
+                                             arg.reg.variable = monthly.kdj.k,
+                                             arg.zero.d.flag = TRUE)
+
+```
+
+```{r appendix 2.8(3), fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+t.test(result.pure.kdj.d$RMSE - result.deternimination.kdj.d$RMSE)
+
+final.deternimination.kdj.d <- cbind(result.pure.kdj.d,
+                                     result.deternimination.kdj.d)
+
+
+
+final.deternimination.kdj.d <- final.deternimination.kdj.d[, -c(7,8)]
+
+colnames(final.deternimination.kdj.d) <- c("seq", "p","d","q", "dr","RMSE", 
+                                        "RMSE2")
+
+
+print(final.deternimination.kdj.d)
+
+model.name <- c("pure kdj.d Arima",
+                   "determination model with predicted kdj.k")
+
+average.rmse <- c(mean(final.deternimination.kdj.d$RMSE),
+                  mean(final.deternimination.kdj.d$RMSE2))
+
+
+df.accuracy <- data.frame(model = model.name,
+                          average.rmse = average.rmse)
+
+print(df.accuracy)
+
+mean(final.deternimination.kdj.d$RMSE > final.deternimination.kdj.d$RMSE2) 
 
 ```
 
@@ -1894,7 +1961,7 @@ mean(final.result.kdj.d$RMSE > final.result.kdj.d$RMSE3)
 
 ```
 
-For predicting kdj.k using dynamic Arima model with estimated kdj.d, some chosen ARIMA models is (0,0,0), which means that kdj.k is simply replaced by estimated kdj.d. So kdj.d is not a good predictor.
+For predicting kdj.k using dynamic Arima model with estimated kdj.d, some chosen ARIMA models is (0,0,0), which means that there is only linear relationship between kdj.k and estimated kdj.d. 
 
 
 #### 3.3 Comparison of forecast accuracy of monthly KDJ.K by difference of monthly KDJ.K and monthly KDJ.D
@@ -1931,10 +1998,11 @@ maxorder <- 5
 
 
 monthly.kdj.kd.diff <- monthly.kdj.k - monthly.kdj.d
-reg.lagged.df <- data.frame(cbind(monthly.kdj.kd.diff,
-                                  ts(c(NA, monthly.kdj.kd.diff[-length(monthly.kdj.kd.diff)])),
-                                  ts(c(NA, NA, head(monthly.kdj.kd.diff, length(monthly.kdj.kd.diff) - 2))),
-                                  ts(c(NA, NA, NA, head(monthly.kdj.kd.diff, length(monthly.kdj.kd.diff) - 3)))))
+reg.lagged.df <- 
+        data.frame(cbind(monthly.kdj.kd.diff,
+                         ts(c(NA, monthly.kdj.kd.diff[-length(monthly.kdj.kd.diff)])),
+                         ts(c(NA, NA, head(monthly.kdj.kd.diff, length(monthly.kdj.kd.diff) - 2))),
+                         ts(c(NA, NA, NA, head(monthly.kdj.kd.diff, length(monthly.kdj.kd.diff) - 3)))))
 ```
 
 ```{r appendix 3.3-3, fig.height=12, fig.width=10, echo = TRUE, cache=TRUE, eval=TRUE}
@@ -2242,6 +2310,9 @@ colnames(final.result.kdj.k) <- c("seq", "p","d","q", "dr","RMSE", "p.v",
 print(final.result.kdj.k)
 
 sum(final.result.kdj.k$RMSE > final.result.kdj.k$RMSE2)
+
+sum(final.result.kdj.k$p.v > 0.05)
+sum(final.result.kdj.k$p.v2 > 0.05)
 
 ```
 

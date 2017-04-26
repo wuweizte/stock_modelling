@@ -48,7 +48,7 @@ DrawMonthlyKDJDForecastPlot <- function(arg.close.price,
         estimated.kdj.k <- forecast(fit.arima.kdj.k,  h = arg.forecast.period)
         
         plot(estimated.kdj.d,
-             plot.conf = FALSE, 
+             PI = FALSE, 
              axes = FALSE,
              type = "l", 
              col = "blue",
@@ -81,12 +81,15 @@ DrawMonthlyKDJDForecastPlot <- function(arg.close.price,
              at = seq(length(arg.kdj.d) - arg.xlim.offset,
                       length(arg.kdj.d) + arg.forecast.period, 5),
              labels = FALSE)
-        
+
+        date.label <- 
+                arg.date[seq(length(arg.kdj.d) - arg.xlim.offset,
+                                   length(arg.kdj.d) + arg.forecast.period, 5)] 
+                
         text(seq(length(arg.kdj.d) - arg.xlim.offset,
                  length(arg.kdj.d) + arg.forecast.period, 5),
              par("usr")[3] - 5,
-             labels = arg.date[seq(length(arg.kdj.d) - arg.xlim.offset,
-                                        length(arg.kdj.d) + arg.forecast.period, 5)],
+             labels = substr(date.label, 1, 10),
              srt = 45,
              pos = 1,
              xpd = TRUE)
@@ -108,6 +111,7 @@ DrawMonthlyKDJDForecastPlot <- function(arg.close.price,
                col = c("blue","deepskyblue","darkorange","red"),
                lty = 1, 
                lwd = 2,
+               ncol = 2,
                legend = c("Actual Monthly KDJ.D",
                           paste0("Forecast Monthly KDJ.D--",kdj.d.arima.name),
                           "Actual Monthly KDJ.K",

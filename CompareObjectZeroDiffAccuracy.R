@@ -11,7 +11,7 @@ CompareObjectZeroDiffAccuracy <- function(arg.object,
                                     end = arg.training.set.endpoint + arg.forecast.period)
         
         
-        # browser()
+        #browser()
         fit.arima.object.1 <- auto.arima(training.set.object.1,
                                          max.order = arg.maxorder,
                                          stepwise = FALSE,
@@ -27,7 +27,7 @@ CompareObjectZeroDiffAccuracy <- function(arg.object,
         result <- t(array(c(arg.training.set.endpoint,
                             fit.arima.object.1$arma[c(1,6,2)],
                             ("drift" %in% names(fit.arima.object.1$coef)) * 1,
-                            round(accuracy(fc.arima.object.1, test.set.object.1)[2,2], digits = 1),
+                            round(accuracy(fc.arima.object.1, test.set.object.1)[2,2], digits = 2),
                             round(pvalue, digits = 2)),
                           dim = c(7,1)))
         
@@ -54,7 +54,7 @@ CompareObjectZeroDiffAccuracy <- function(arg.object,
                 result2 <- t(array(c(arg.training.set.endpoint + i,
                                      fit.arima.object.2$arma[c(1,6,2)],
                                      ("drift" %in% names(fit.arima.object.2$coef)) * 1,
-                                     round(accuracy(fc.arima.object.2, test.set.object.2)[2,2], digits = 1),
+                                     round(accuracy(fc.arima.object.2, test.set.object.2)[2,2], digits = 2),
                                      round(pvalue, digits = 2)),
                                    dim = c(7,1)))
                 

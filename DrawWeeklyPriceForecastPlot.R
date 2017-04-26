@@ -1,17 +1,19 @@
-DrawMonthlyPriceForecastPlot <- function(arg.close.price, 
+DrawWeeklyPriceForecastPlot <- function(arg.close.price, 
                                         arg.kdj.k, 
                                         arg.kdj.d, 
                                         arg.forecast.period, 
                                         arg.ylabel.offset,
                                         arg.xlim.offset,
+                                        arg.regression.offset,
                                         arg.date){
         
-        
+        close.price.data <- window(arg.close.price, 
+                                   start = length(arg.close.price) - arg.regression.offset)
 
-        fit.price <- auto.arima(arg.close.price, 
-                                       stepwise = FALSE, 
-                                       approximation = FALSE,
-                                       max.order = 5)
+        fit.price <- auto.arima(close.price.data, 
+                                stepwise = FALSE, 
+                                approximation = FALSE,
+                                max.order = 5)
         
         pvalue.price <- Box.test(residuals(fit.price), lag=10, 
                              fitdf=sum(fit.price$arma[c(1,2)]), 
@@ -19,15 +21,14 @@ DrawMonthlyPriceForecastPlot <- function(arg.close.price,
         
         
         if(pvalue.price < 0.05){
-                fit.price <- auto.arima(arg.close.price, 
+                fit.price <- auto.arima(close.price.data, 
                                         stepwise = FALSE, 
                                         approximation = FALSE,
                                         max.order = 9)
         }
         
         fc.arima <- forecast(fit.price, h = arg.forecast.period)
-        fc.naive <- naive(arg.close.price, h = arg.forecast.period)
-        
+
         y.upper.limit <- signif(max(c(fc.arima$upper,
                                       tail(fc.arima$x, arg.xlim.offset))), digits = 2) + 100
         
@@ -44,10 +45,10 @@ DrawMonthlyPriceForecastPlot <- function(arg.close.price,
              pi.col = "purple",
              fcol = "darkgrey",
              axes = FALSE, 
-             main = "Monthly Gold Price",
+             main = "Weekly Gold Price",
              xlab = "")
         
-        lines((fc.arima$mean + fc.naive$mean) / 2, type = "o", col = "red")
+        lines(fc.arima$mean , type = "o", col = "red")
         
         axis(1,
              at = seq(length(arg.close.price) - arg.xlim.offset,
@@ -56,7 +57,7 @@ DrawMonthlyPriceForecastPlot <- function(arg.close.price,
         
         date.label <- 
                 arg.date[seq(length(arg.close.price) - arg.xlim.offset,
-                                   length(arg.close.price) + arg.forecast.period, 5)]
+                             length(arg.close.price) + arg.forecast.period, 5)]
         
         text(seq(length(arg.close.price) - arg.xlim.offset,
                  length(arg.close.price) + arg.forecast.period, 5),
@@ -87,14 +88,14 @@ DrawMonthlyPriceForecastPlot <- function(arg.close.price,
                                    fit.price$arma[1],",",
                                    fit.price$arma[6],",",
                                    fit.price$arma[2],
-                                   ") + Naive")
+                                   ")")
         
         legend("bottomleft", 
                col = c("black","red"),
                lty = 1, 
                lwd = 2,
-               legend = c("Actual Monthly Gold Price",
-                          paste0("Forecast Monthly Gold Price--", price.arima.name)),
+               legend = c("Actual Weekly Gold Price",
+                          paste0("Forecast Weekly Gold Price--", price.arima.name)),
                bty = "n")            
         box()
         
