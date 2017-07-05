@@ -1,0 +1,309 @@
+---
+title: "ARIMA Prediction Of Gold compound return"
+author: "Wu Wei"
+date: "2017-7-4"
+output: html_document
+---
+
+
+
+```{r library, echo = FALSE}
+suppressMessages(library(forecast))
+suppressMessages(library(ggplot2))
+suppressMessages(library(rugarch))
+suppressMessages(library(lmtest))
+suppressMessages(library(tseries))
+suppressMessages(library(fBasics))
+suppressMessages(library(Rdonlp2))
+suppressMessages(library("FinTS"))
+```
+
+
+## 1.Analyse for monthly gold price
+
+
+```{r appendix 1.1-1, echo = TRUE}
+rm(list = ls())
+
+setwd("d://MyR//stock//")
+monthly.original.data <- read.csv("goldmonthly.csv")
+# View(monthly.original.data)
+
+
+monthly.close.price <- as.ts(monthly.original.data[,5])
+
+# View(data.frame(monthly.original.data, c(0, diff(log(monthly.close.price)))))
+
+monthly.compound.return <- diff(log(monthly.close.price)) * 100
+
+```
+
+
+```{r, fig.height=8, fig.width=10}
+
+tsdisplay(monthly.compound.return)
+```
+
+```{r, eval=TRUE}
+
+ndiffs(monthly.compound.return)
+
+```
+
+```{r}
+mean(monthly.compound.return)
+sd(monthly.compound.return)
+skewness(monthly.compound.return)
+kurtosis(monthly.compound.return)
+jarqueberaTest(monthly.compound.return)
+
+```
+
+```{r,eval=TRUE}
+
+(fit.arima.monthly.return <- auto.arima(monthly.compound.return, 
+                                                  stepwise = FALSE, approximation = FALSE))
+
+```
+
+### 1.1 White Noise Test
+
+
+```{r Monthly Verification--White Noise Test, cache=FALSE, eval=TRUE}
+
+
+Box.test(residuals(fit.arima.monthly.return), 
+         lag=10, 
+         fitdf=sum(fit.arima.monthly.return$arma[c(1,2)]), type = "Lj")
+
+Box.test(residuals(fit.arima.monthly.return), 
+         lag=20, 
+         fitdf=sum(fit.arima.monthly.return$arma[c(1,2)]), type = "Lj")
+
+```
+
+### 1.2  Relationship Between Residuals And Time
+
+```{r main 3.2, fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
+
+plot(residuals(fit.arima.monthly.return), axes = TRUE)
+abline(h = 0, col = "red")
+
+```
+
+### 1.3 Relationship Between Residuals And Fitted Value
+
+```{r main 3.3, fig.height=6, fig.width=10, eval=TRUE}
+
+plot(as.numeric(residuals(fit.arima.monthly.return)) ~ as.numeric(fitted(fit.arima.monthly.return)))
+abline(h = 0, col = "red")
+
+
+```
+
+
+### 1.4 Normality of Residuals
+
+```{r Monthly Verification--Normality of Residuals, fig.height=6, fig.width=10, eval=TRUE}
+
+qqnorm(residuals(fit.arima.monthly.return))
+qqline(residuals(fit.arima.monthly.return))
+
+
+```
+
+### 1.5 ARCH Effect Test
+
+
+```{r Monthly Verification 3.5, eval=TRUE}
+
+Box.test((residuals(fit.arima.monthly.return))^2, 
+         lag=10, 
+         fitdf=sum(fit.arima.monthly.return$arma[c(1,2)]), type = "Lj")
+
+Box.test((residuals(fit.arima.monthly.return))^2, 
+         lag=20, 
+         fitdf=sum(fit.arima.monthly.return$arma[c(1,2)]), type = "Lj")
+
+ArchTest(residuals(fit.arima.monthly.return))
+
+
+
+```
+
+## 2 Comparison of pure Arima model with naive model
+
+```{r appendix 3.6, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+source("d://MyR//stock//CompareObjectNaiveAccuracy.R")
+source("d://MyR//stock//CompareObjectAccuracy.R")
+
+comparison.period <- 20
+
+forecast.period <- 4
+
+training.set.endpoint <- length(monthly.compound.return) - comparison.period - forecast.period
+
+maxorder <- 5
+```
+
+```{r appendix 3.6(1), fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+result.naive <- CompareObjectNaiveAccuracy(arg.object = monthly.compound.return,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+```
+
+```{r appendix 3.6(2), fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+result.pure <- CompareObjectAccuracy(arg.object = monthly.compound.return,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+```
+
+```{r appendix 3.6(3), fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+t.test(result.pure$RMSE - result.naive$RMSE)
+
+final.result <- cbind(result.pure,
+                      result.naive)
+
+
+final.result <- final.result[, -c(8)]
+
+colnames(final.result) <- c("seq", "p","d","q", "dr","RMSE", "p.v",
+                            "p2","d2","q2", "dr2","RMSE2", "p.v2")
+
+print(final.result)
+
+sum(final.result$RMSE > final.result$RMSE2)
+
+sum(final.result$p.v > 0.05)
+
+sum(final.result$p.v2 > 0.05)
+
+```
+
+
+## 3 Comparison of pure Arima models
+
+```{r appendix 3.7, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+source("d://MyR//zhao//CompareObjectAccuracyArimaNolimitation.R")
+
+
+```
+
+
+```{r appendix 3.7(2), fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+result.pure.no.limitation <- CompareObjectAccuracyArimaNolimitation(arg.object = monthly.compound.return,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+```
+
+```{r appendix 3.7(3), fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+t.test(result.pure$RMSE - result.pure.no.limitation$RMSE)
+
+final.result <- cbind(result.pure,
+                      result.pure.no.limitation)
+
+
+final.result <- final.result[, -c(8)]
+
+colnames(final.result) <- c("seq", "p","d","q", "dr","RMSE", "p.v",
+                            "p2","d2","q2", "dr2","RMSE2", "p.v2")
+
+print(final.result)
+
+sum(final.result$RMSE > final.result$RMSE2)
+
+sum(final.result$p.v > 0.05)
+
+sum(final.result$p.v2 > 0.05)
+
+```
+
+### 3.1 White Noise Test
+
+
+```{r , cache=FALSE, eval=TRUE}
+(fit.arima.monthly.return.no.limitation <- auto.arima(monthly.compound.return))
+
+
+Box.test(residuals(fit.arima.monthly.return.no.limitation), 
+         lag=10, 
+         fitdf=sum(fit.arima.monthly.return.no.limitation$arma[c(1,2)]), type = "Lj")
+
+Box.test(residuals(fit.arima.monthly.return.no.limitation), 
+         lag=20, 
+         fitdf=sum(fit.arima.monthly.return.no.limitation$arma[c(1,2)]), type = "Lj")
+
+```
+
+### 3.2  Relationship Between Residuals And Time
+
+```{r , fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
+
+plot(residuals(fit.arima.monthly.return.no.limitation), axes = TRUE)
+abline(h = 0, col = "red")
+
+```
+
+### 3.3 Relationship Between Residuals And Fitted Value
+
+```{r , fig.height=6, fig.width=10, eval=TRUE}
+
+# plot(as.numeric(residuals(fit.arima.monthly.return.no.limitation)) ~ as.numeric(fitted(fit.arima.monthly.return.no.limitation)))
+# abline(h = 0, col = "red")
+
+
+plot(as.numeric(residuals(fit.arima.monthly.return.no.limitation)) )
+
+```
+
+
+### 3.4 Normality of Residuals
+
+```{r , fig.height=6, fig.width=10, eval=TRUE}
+
+qqnorm(residuals(fit.arima.monthly.return.no.limitation))
+qqline(residuals(fit.arima.monthly.return.no.limitation))
+
+
+```
+
+### 3.5 ARCH Effect Test
+
+
+```{r , eval=TRUE}
+
+Box.test((residuals(fit.arima.monthly.return.no.limitation))^2, 
+         lag=10, 
+         fitdf=sum(fit.arima.monthly.return.no.limitation$arma[c(1,2)]), type = "Lj")
+
+Box.test((residuals(fit.arima.monthly.return.no.limitation))^2, 
+         lag=20, 
+         fitdf=sum(fit.arima.monthly.return.no.limitation$arma[c(1,2)]), type = "Lj")
+
+ArchTest(residuals(fit.arima.monthly.return.no.limitation))
+
+
+
+```
+
+
+
+## 4 Forecast using Arima model
+```{r, eval=TRUE}
+forecast(fit.arima.monthly.return.no.limitation, h = 1, 
+                              level = c(80,95))
+```
+
+```{r, eval=TRUE}
+tail(monthly.compound.return)
+```
+
+
+
+

@@ -1,11 +1,26 @@
 DrawMonthlyPriceForecastPlot <- function(arg.close.price, 
-                                        arg.kdj.k, 
-                                        arg.kdj.d, 
+                                        # arg.kdj.k, 
+                                        # arg.kdj.d, 
                                         arg.forecast.period, 
-                                        arg.ylabel.offset,
+                                        # arg.ylabel.offset,
                                         arg.xlim.offset,
                                         arg.date){
         
+        # Use the average of forecast results of Arima model and naive model to draw monthly price plot
+        # 
+        # 
+        # Args:
+        #   arg.close.price: time series used for modelling
+        # 
+        #   arg.forecast.period: how long the forecast will be made every time
+        # 
+        #   arg.xlim.offset: the start specification of the training set shown in the plot
+        # 
+        #   arg.date:    date label array 
+        # 
+        # 
+        # Returns:
+        #   No return. Plot has been made during the function execution process. 
         
 
         fit.price <- auto.arima(arg.close.price, 

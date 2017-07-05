@@ -3,7 +3,25 @@ CompareObjectArimaNaiveAccuracy <- function(arg.object,
                                   arg.training.set.endpoint, 
                                   arg.comparison.period,
                                   arg.maxorder){
+
+        # Use the average of forecast results of Arima model and naive model
+        # 
+        # 
+        # Args:
+        #   arg.object: time series used for modelling
+        # 
+        #   arg.forecast.period: how long the forecast will be made every time
+        # 
+        #   arg.training.set.endpoint: the end specification of the training set in the time series
+        # 
+        #   arg.comparison.period:    how many times the comparison will be made
+        # 
+        #   arg.maxorder: parameter sent to auto.arima function
+        # 
+        # Returns:
+        #   data frame containing the forecast performance: ("seq", "p","d","q", "dr", "RMSE", "p.v")
         
+                
         # browser()
         training.set.object.1 <- window(arg.object, start = 1, 
                                         end = arg.training.set.endpoint)

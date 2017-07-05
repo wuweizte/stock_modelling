@@ -14,7 +14,7 @@ suppressMessages(library(ggplot2))
 suppressMessages(library(FinTS))
 ```
 
-### 1. Forecast result of monthly kdj.d and monthly gold price
+### 1. Forecast result of monthly kdj k/d and monthly gold price
 
 ```{r main 1.1, echo = TRUE}
 rm(list = ls())
@@ -45,10 +45,7 @@ DrawMonthlyKDJDForecastPlot(monthly.close.price,
 source("DrawMonthlyPriceForecastPlot.R")
 
 DrawMonthlyPriceForecastPlot(monthly.close.price,
-                            monthly.kdj.k,
-                            monthly.kdj.d,
                             arg.forecast.period = 5,
-                            arg.ylabel.offset = 80,
                             arg.xlim.offset = 80,
                             arg.date = monthly.original.data[, 1])
 ```
@@ -56,7 +53,7 @@ DrawMonthlyPriceForecastPlot(monthly.close.price,
 
 It can be seen from monthly KDJ.D that the long-term decreasing trend has stopped, which means that the chance of earning money is not decreasing. It is a neutral signal, which can stimulate money come in mildly. 
         
-### 2. Forecast result of Weekly kdj.d and Weekly gold price
+### 2. Forecast result of Weekly kdj k/d and Weekly gold price
 
 ```{r main 2.1, echo = TRUE}
 rm(list = ls())

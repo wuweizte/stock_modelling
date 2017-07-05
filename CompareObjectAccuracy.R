@@ -4,7 +4,7 @@ CompareObjectAccuracy <- function(arg.object,
                                   arg.comparison.period,
                                   arg.maxorder){
         
-        training.set.object.1 <- window(arg.object, start = 1, 
+        training.set.object.1 <- window(arg.object, #start = 1, 
                                         end = arg.training.set.endpoint)
         
         test.set.object.1 <- window(arg.object, start = arg.training.set.endpoint + 1,
@@ -34,7 +34,8 @@ CompareObjectAccuracy <- function(arg.object,
         for(i in 1:arg.comparison.period){
                 
                 end.point2 <- arg.training.set.endpoint + i
-                training.set.object.2 <- window(arg.object, start = 1, end = end.point2)
+                training.set.object.2 <- window(arg.object, #start = 1, 
+                                                end = end.point2)
                 test.set.object.2 <- window(arg.object, start = end.point2 + 1,
                                             end = end.point2 + arg.forecast.period)
                 
