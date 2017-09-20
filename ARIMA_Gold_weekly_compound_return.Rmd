@@ -1,0 +1,408 @@
+---
+title: "ARIMA Prediction Of Gold weekly compound return"
+author: "Wu Wei"
+date: "2017-7-19"
+output: html_document
+---
+
+
+
+```{r library, echo = FALSE}
+suppressMessages(library(forecast))
+suppressMessages(library(ggplot2))
+suppressMessages(library(rugarch))
+suppressMessages(library(lmtest))
+suppressMessages(library(tseries))
+suppressMessages(library(fBasics))
+suppressMessages(library(Rdonlp2))
+suppressMessages(library("FinTS"))
+```
+
+
+## 1.Analyse for weekly gold price
+
+
+```{r appendix 1-1, echo = TRUE}
+rm(list = ls())
+
+setwd("d://MyR//stock//")
+weekly.original.data <- read.csv("goldweekly.csv")
+# View(weekly.original.data)
+
+weekly.close.price <- as.ts(weekly.original.data[,5])
+
+weekly.compound.return <- diff(log(weekly.close.price)) * 100
+
+names(weekly.compound.return) <- weekly.original.data$Time[-1]
+
+```
+
+
+```{r appendix 1-2, fig.height=8, fig.width=10}
+
+tsdisplay(weekly.compound.return)
+```
+
+```{r appendix 1-3, eval=TRUE}
+
+ndiffs(weekly.compound.return)
+
+```
+
+```{r appendix 1-4}
+mean(weekly.compound.return)
+sd(weekly.compound.return)
+skewness(weekly.compound.return)
+kurtosis(weekly.compound.return)
+jarqueberaTest(weekly.compound.return)
+
+```
+
+```{r appendix 1-5, cache=TRUE, eval=TRUE}
+(fit.arima.weekly.return <- auto.arima(weekly.compound.return, seasonal = FALSE,
+                                                  stepwise = FALSE, approximation = FALSE))
+
+```
+
+
+
+### 1.1 White Noise Test
+
+
+```{r  appendix 1.1-1, cache=FALSE, eval=TRUE}
+
+
+Box.test(residuals(fit.arima.weekly.return), 
+         lag=10, 
+         fitdf=sum(fit.arima.weekly.return$arma[c(1,2)]), type = "Lj")
+
+Box.test(residuals(fit.arima.weekly.return), 
+         lag=20, 
+         fitdf=sum(fit.arima.weekly.return$arma[c(1,2)]), type = "Lj")
+
+```
+
+### 1.2  Relationship Between Residuals And Time
+
+```{r appendix 1.2-1, fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
+
+plot(residuals(fit.arima.weekly.return), axes = TRUE)
+abline(h = 0, col = "red")
+
+```
+
+### 1.3 Relationship Between Residuals And Fitted Value
+
+```{r appendix 1.3-1, fig.height=6, fig.width=10, eval=TRUE}
+
+plot(as.numeric(residuals(fit.arima.weekly.return)) ~ as.numeric(fitted(fit.arima.weekly.return)))
+abline(h = 0, col = "red")
+
+
+```
+
+
+### 1.4 Normality of Residuals
+
+```{r appendix 1.4-1, fig.height=6, fig.width=10, eval=TRUE}
+
+qqnorm(residuals(fit.arima.weekly.return))
+qqline(residuals(fit.arima.weekly.return))
+
+
+```
+
+### 1.5 ARCH Effect Test
+
+
+```{r appendix 1.5-1, eval=TRUE}
+
+Box.test((residuals(fit.arima.weekly.return))^2, 
+         lag=10, 
+         fitdf=sum(fit.arima.weekly.return$arma[c(1,2)]), type = "Lj")
+
+Box.test((residuals(fit.arima.weekly.return))^2, 
+         lag=20, 
+         fitdf=sum(fit.arima.weekly.return$arma[c(1,2)]), type = "Lj")
+
+ArchTest(residuals(fit.arima.weekly.return))
+
+
+
+```
+
+## 2 Comparison of pure Arima model with naive model
+
+```{r appendix 2-1, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+source("d://MyR//stock//CompareObjectNaiveAccuracy.R")
+source("d://MyR//stock//CompareObjectAccuracy.R")
+
+comparison.period <- 20
+
+forecast.period <- 4
+
+training.set.endpoint <- length(weekly.compound.return) - comparison.period - forecast.period
+
+maxorder <- 5
+```
+
+```{r appendix 2-2, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+result.naive <- CompareObjectNaiveAccuracy(arg.object = weekly.compound.return,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+```
+
+```{r appendix 2-3, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+result.pure <- CompareObjectAccuracy(arg.object = weekly.compound.return,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+```
+
+```{r appendix 2-4, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+t.test(result.pure$RMSE - result.naive$RMSE)
+
+final.result <- cbind(result.pure,
+                      result.naive)
+
+
+final.result <- final.result[, -c(8)]
+
+colnames(final.result) <- c("seq", "p","d","q", "dr","RMSE", "p.v",
+                            "p2","d2","q2", "dr2","RMSE2", "p.v2")
+
+print(final.result)
+
+sum(final.result$RMSE > final.result$RMSE2)
+
+sum(final.result$p.v > 0.05)
+
+sum(final.result$p.v2 > 0.05)
+
+```
+
+Arima model should not be replaced by naive model.
+
+
+## 3 Comparison of pure Arima models
+
+```{r appendix 3-1, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+source("d://MyR//zhao//CompareObjectAccuracyArimaNolimitation.R")
+
+
+```
+
+
+```{r appendix 3-2, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+result.pure.no.limitation <- CompareObjectAccuracyArimaNolimitation(arg.object = weekly.compound.return,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+```
+
+```{r appendix 3-3, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+t.test(result.pure$RMSE - result.pure.no.limitation$RMSE)
+
+final.result <- cbind(result.pure,
+                      result.pure.no.limitation)
+
+
+final.result <- final.result[, -c(8)]
+
+colnames(final.result) <- c("seq", "p","d","q", "dr","RMSE", "p.v",
+                            "p2","d2","q2", "dr2","RMSE2", "p.v2")
+
+print(final.result)
+
+sum(final.result$RMSE > final.result$RMSE2)
+
+sum(final.result$p.v > 0.05)
+
+sum(final.result$p.v2 > 0.05)
+
+```
+
+### 3.1 White Noise Test
+
+
+```{r appendix 3.1-1 , cache=FALSE, eval=TRUE}
+(fit.arima.weekly.return.no.limitation <- auto.arima(weekly.compound.return, seasonal = FALSE))
+
+
+Box.test(residuals(fit.arima.weekly.return.no.limitation), 
+         lag=10, 
+         fitdf=sum(fit.arima.weekly.return.no.limitation$arma[c(1,2)]), type = "Lj")
+
+Box.test(residuals(fit.arima.weekly.return.no.limitation), 
+         lag=20, 
+         fitdf=sum(fit.arima.weekly.return.no.limitation$arma[c(1,2)]), type = "Lj")
+
+```
+
+### 3.2  Relationship Between Residuals And Time
+
+```{r appendix 3.2-1 , fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
+
+plot(residuals(fit.arima.weekly.return.no.limitation), axes = TRUE)
+abline(h = 0, col = "red")
+
+```
+
+### 3.3 Relationship Between Residuals And Fitted Value
+
+```{r appendix 3.3-1 , fig.height=6, fig.width=10, eval=TRUE}
+
+plot(as.numeric(residuals(fit.arima.weekly.return.no.limitation)) ~ as.numeric(fitted(fit.arima.weekly.return.no.limitation)))
+abline(h = 0, col = "red")
+
+
+# plot(as.numeric(residuals(fit.arima.weekly.return.no.limitation)) )
+
+```
+
+
+### 3.4 Normality of Residuals
+
+```{r appendix 3.4-1 , fig.height=6, fig.width=10, eval=TRUE}
+
+qqnorm(residuals(fit.arima.weekly.return.no.limitation))
+qqline(residuals(fit.arima.weekly.return.no.limitation))
+
+
+```
+
+### 3.5 ARCH Effect Test
+
+
+```{r appendix 3.5-1 , eval=TRUE}
+
+Box.test((residuals(fit.arima.weekly.return.no.limitation))^2, 
+         lag=10, 
+         fitdf=sum(fit.arima.weekly.return.no.limitation$arma[c(1,2)]), type = "Lj")
+
+Box.test((residuals(fit.arima.weekly.return.no.limitation))^2, 
+         lag=20, 
+         fitdf=sum(fit.arima.weekly.return.no.limitation$arma[c(1,2)]), type = "Lj")
+
+ArchTest(residuals(fit.arima.weekly.return.no.limitation))
+
+
+
+```
+
+
+## 4 Comparison of pure Arima model with arfima model
+
+### 4.1 ARFIMA Model With Norm Distribution Assumption
+
+```{r appendix 4-1, cache=TRUE, eval=TRUE}
+source("CompareObjectArfimaAccuracy.r")
+result.arfima.norm <- CompareObjectArfimaAccuracy(arg.object = weekly.compound.return,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.dist = "norm")
+
+```
+
+```{r appendix 4-2, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+t.test(result.pure$RMSE - result.arfima.norm$RMSE)
+
+final.result <- cbind(result.pure,
+                      result.arfima.norm)
+
+
+final.result <- final.result[, -c(8)]
+
+colnames(final.result) <- c("seq", "p","d","q", "dr","RMSE", "p.v",
+                            "p2","q2", "RMSE2", "p.v2")
+
+print(final.result)
+
+sum(final.result$RMSE > final.result$RMSE2)
+
+sum(final.result$p.v > 0.05)
+
+sum(final.result$p.v2 > 0.05)
+
+```
+
+### 4.2 ARFIMA Model With Std Distribution Assumption
+
+```{r appendix 4.2.1, cache=TRUE, eval=TRUE}
+source("CompareObjectArfimaAccuracy.r")
+result.arfima.std <- CompareObjectArfimaAccuracy(arg.object = weekly.compound.return,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.dist = "std")
+
+```
+
+```{r appendix 4.2.2, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+t.test(result.pure$RMSE - result.arfima.std$RMSE)
+
+final.result <- cbind(result.pure,
+                      result.arfima.std)
+
+
+final.result <- final.result[, -c(8)]
+
+colnames(final.result) <- c("seq", "p","d","q", "dr","RMSE", "p.v",
+                            "p2","q2", "RMSE2", "p.v2")
+
+print(final.result)
+
+sum(final.result$RMSE > final.result$RMSE2)
+
+sum(final.result$p.v > 0.05)
+
+sum(final.result$p.v2 > 0.05)
+
+```
+
+```{r appendix 4.2.3, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+t.test(result.arfima.norm$RMSE - result.arfima.std$RMSE)
+
+final.result <- cbind(result.arfima.norm,
+                      result.arfima.std)
+
+
+final.result <- final.result[, -c(6)]
+
+colnames(final.result) <- c("seq", "p","q", "RMSE", "p.v",
+                            "p2","q2", "RMSE2", "p.v2")
+
+print(final.result)
+
+sum(final.result$RMSE > final.result$RMSE2)
+
+sum(final.result$p.v > 0.05)
+
+sum(final.result$p.v2 > 0.05)
+
+```
+
+```{r appendix 4.2.4, cache=TRUE, eval=TRUE}
+autoarfima(data = weekly.compound.return, ar.max = 3, ma.max = 2, 
+                                criterion = "AIC", method = "full", distribution.model = "std")
+```
+
+
+## 5 Forecast using Arima model
+```{r appendix 5-1, eval=TRUE}
+forecast(fit.arima.weekly.return.no.limitation, h = 1, 
+                              level = c(80,95))
+```
+
+```{r appendix 5-2, eval=TRUE}
+tail(weekly.compound.return)
+```
+
+
+
+

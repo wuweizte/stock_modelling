@@ -11,6 +11,7 @@ DrawMonthlyKDJDForecastPlot <- function(arg.close.price,
         fit.arima.kdj.d <- auto.arima(arg.kdj.d,
                                       max.order = 5,
                                       stepwise = FALSE,
+                                      seasonal = FALSE,
                                       approximation = FALSE)
         
         pvalue.d <- Box.test(residuals(fit.arima.kdj.d), lag=10, 
@@ -22,6 +23,7 @@ DrawMonthlyKDJDForecastPlot <- function(arg.close.price,
                 fit.arima.kdj.d <- auto.arima(arg.kdj.d,
                                               max.order = 9,
                                               stepwise = FALSE,
+                                              seasonal = FALSE,
                                               approximation = FALSE)
         }
         
@@ -30,6 +32,7 @@ DrawMonthlyKDJDForecastPlot <- function(arg.close.price,
         fit.arima.kdj.k <- auto.arima(arg.kdj.k,
                                       max.order = 5,
                                       d = 0,
+                                      seasonal = FALSE,
                                       stepwise = FALSE,
                                       approximation = FALSE)
         
@@ -41,6 +44,7 @@ DrawMonthlyKDJDForecastPlot <- function(arg.close.price,
                 fit.arima.kdj.k <- auto.arima(arg.kdj.k,
                                               max.order = 9,
                                               d = 0,
+                                              seasonal = FALSE,
                                               stepwise = FALSE,
                                               approximation = FALSE)
         }
@@ -56,14 +60,16 @@ DrawMonthlyKDJDForecastPlot <- function(arg.close.price,
              lwd = 2,
              main = "Monthly KDJ Figure",
              ylim = c(5,95),
-             xlim = c(length(arg.kdj.d) - arg.xlim.offset,
-                      length(arg.kdj.d) + arg.forecast.period))
+             xlim = c(tsp(arg.kdj.d)[2] - arg.xlim.offset / tsp(arg.kdj.d)[3],
+                      tsp(arg.kdj.d)[2] + arg.forecast.period / tsp(arg.kdj.d)[3])
+             )
         
         lines(estimated.kdj.d$mean, type = "o", col = "deepskyblue")
         
         lines(estimated.kdj.k$mean, type = "l", col = "red",lwd = 2)
-        lines(window(arg.kdj.k, start = length(arg.kdj.d) - arg.xlim.offset),
-              type = "l", col = "darkorange")
+
+
+        lines(arg.kdj.k,type = "l", col = "darkorange")
 
         kdj.d.arima.name <- paste0("Arima(",
                                    fit.arima.kdj.d$arma[1],",",
@@ -78,16 +84,18 @@ DrawMonthlyKDJDForecastPlot <- function(arg.close.price,
                                    ")")
 
         axis(1,
-             at = seq(length(arg.kdj.d) - arg.xlim.offset,
-                      length(arg.kdj.d) + arg.forecast.period, 5),
+             at = seq(tsp(arg.kdj.d)[2] - arg.xlim.offset / tsp(arg.kdj.d)[3],
+                      tsp(arg.kdj.d)[2] + arg.forecast.period / tsp(arg.kdj.d)[3], 
+                      5 / tsp(arg.kdj.d)[3]),
              labels = FALSE)
 
         date.label <- 
                 arg.date[seq(length(arg.kdj.d) - arg.xlim.offset,
                                    length(arg.kdj.d) + arg.forecast.period, 5)] 
                 
-        text(seq(length(arg.kdj.d) - arg.xlim.offset,
-                 length(arg.kdj.d) + arg.forecast.period, 5),
+        text(seq(tsp(arg.kdj.d)[2] - arg.xlim.offset / tsp(arg.kdj.d)[3],
+                 tsp(arg.kdj.d)[2] + arg.forecast.period / tsp(arg.kdj.d)[3], 
+                 5 / tsp(arg.kdj.d)[3]),
              par("usr")[3] - 5,
              labels = substr(date.label, 1, 10),
              srt = 45,
@@ -96,8 +104,9 @@ DrawMonthlyKDJDForecastPlot <- function(arg.close.price,
         
         axis(2, at = seq(5 ,95, 10), labels = TRUE, las = 1)
         
-        abline(v = seq(length(arg.kdj.d) - arg.xlim.offset,
-                       length(arg.kdj.d) + arg.forecast.period, 5),
+        abline(v = seq(tsp(arg.kdj.d)[2] - arg.xlim.offset / tsp(arg.kdj.d)[3],
+                       tsp(arg.kdj.d)[2] + arg.forecast.period / tsp(arg.kdj.d)[3], 
+                       5 / tsp(arg.kdj.d)[3]),
                col = "springgreen4",
                lty = "dashed",
                lwd = par("lwd"))

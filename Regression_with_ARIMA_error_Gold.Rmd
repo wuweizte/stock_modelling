@@ -11,6 +11,7 @@ output: html_document
 ```{r library, echo = FALSE}
 suppressMessages(library(forecast))
 suppressMessages(library(ggplot2))
+suppressMessages(library(rugarch))
 ```
 
 
@@ -1659,6 +1660,56 @@ mean(final.deternimination.kdj.d$RMSE > final.deternimination.kdj.d$RMSE2)
 
 ```
 
+
+#### 2.9 Comparison of pure Arima model of monthly kdj.d with arfima model
+
+```{r appendix 2.9, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+setwd("d://MyR//stock//")
+source("CompareObjectArfimaAccuracy.r")
+
+training.set.endpoint <- length(monthly.kdj.d) - 10 - forecast.period
+
+system.time(result.arfima.10 <- CompareObjectArfimaAccuracy(arg.object = monthly.kdj.d,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = 10))
+
+```
+
+```{r appendix 2.9(1), fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+system.time(result.pure.kdj.d.10 <- CompareObjectAccuracy(arg.object = monthly.kdj.d,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = 10,
+                                                 arg.maxorder = maxorder))
+
+
+```
+
+```{r appendix 2.9(2), fig.height=5, fig.width=7, echo = TRUE, cache=FALSE, eval=TRUE}
+t.test(result.pure.kdj.d.10$RMSE - result.arfima.10$RMSE)
+
+summary(result.pure.kdj.d.10$RMSE)
+
+summary(result.arfima.10$RMSE)
+
+final.result.kdj.d <- cbind(result.pure.kdj.d.10,
+                      result.arfima.10)
+
+final.result.kdj.d <- final.result.kdj.d[, -c(8)]
+
+colnames(final.result.kdj.d) <- c("seq", "p","d","q", "dr","RMSE", "p.v",
+                            "p2","q2", "RMSE2", "p.v2")
+
+print(final.result.kdj.d)
+
+sum(final.result.kdj.d$RMSE > final.result.kdj.d$RMSE2)
+
+sum(final.result.kdj.d$p.v >= 0.05)
+
+sum(final.result.kdj.d$p.v2 >= 0.05)
+
+```
 
 ### 3.Analyse for predicting monthly KDJ.K
 

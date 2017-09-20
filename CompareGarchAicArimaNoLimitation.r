@@ -1,8 +1,13 @@
 
-CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
+CompareGarchAicArimaNoLimitation <- function(arg.training.set, arg.difference){
         
         
+        fit.arima.kdj.k <- auto.arima(arg.training.set,
+                                      max.order = 5,
+                                      d = arg.difference)
 
+        inf.arima <- t(c(fit.arima.kdj.k$aic, fit.arima.kdj.k$bic, 0, 0)) 
+ 
         ####
         if(arg.difference == 0){
                 training.set <- arg.training.set
@@ -12,7 +17,7 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
         
         ####
         myspec.sgarch.norm <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
-                                         mean.model = list(armaOrder = c(0,0)),
+                                         mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                          distribution.model = "norm")
         
         myfit.sgarch.norm <- ugarchfit(myspec.sgarch.norm, data = training.set, solver = "hybrid")
@@ -20,43 +25,30 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
 
         (inf.sgarch.norm <- t(infocriteria(myfit.sgarch.norm)))
         
-        
+
         ####
-        myspec.sgarch.norm.archm <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
-                                         mean.model = list(armaOrder = c(0,0),
-                                                           archm = TRUE,
-                                                           archpow = 2),
+        myspec.aparch.norm <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(1,1)),
+                                         mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                          distribution.model = "norm")
         
-        myfit.sgarch.norm.archm <- ugarchfit(myspec.sgarch.norm.archm, data = training.set, solver = "hybrid")
+        myfit.aparch.norm <- ugarchfit(myspec.aparch.norm, data = training.set, solver = "hybrid")
         
         
-        (inf.sgarch.norm.archm <- t(infocriteria(myfit.sgarch.norm.archm)))
+        (inf.aparch.norm <- t(infocriteria(myfit.aparch.norm)))
         
         ####
         myspec.igarch.norm <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
-                                         mean.model = list(armaOrder = c(0,0)),
+                                         mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                          distribution.model = "norm")
         
         myfit.igarch.norm <- ugarchfit(myspec.igarch.norm, data = training.set, solver = "hybrid")
 
         (inf.igarch.norm <- t(infocriteria(myfit.igarch.norm)))
         
-   
-        ####
-        myspec.igarch.norm.archm <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
-                                         mean.model = list(armaOrder = c(0,0),
-                                                           archm = TRUE,
-                                                           archpow = 2),
-                                         distribution.model = "norm")
-
-        myfit.igarch.norm.archm <- ugarchfit(myspec.igarch.norm.archm, data = training.set, solver = "hybrid")
-
-        (inf.igarch.norm.archm <- t(infocriteria(myfit.igarch.norm.archm)))
         
         ####
         myspec.egarch.norm <- ugarchspec(variance.model = list(model = "eGARCH",garchOrder = c(1,1)),
-                                         mean.model = list(armaOrder = c(0,0)),
+                                         mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                          distribution.model = "norm")
         
         myfit.egarch.norm <- ugarchfit(myspec.egarch.norm, data = training.set, solver = "hybrid")
@@ -64,11 +56,10 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
 
         (inf.egarch.norm <- t(infocriteria(myfit.egarch.norm)))
         
-   
-
+        
         ###########
         myspec.gjrgarch.norm <- ugarchspec(variance.model = list(model = "gjrGARCH",garchOrder = c(1,1)),
-                                           mean.model = list(armaOrder = c(0,0)),
+                                           mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                            distribution.model = "norm")
         
         myfit.gjrgarch.norm <- ugarchfit(myspec.gjrgarch.norm, data = training.set, solver = "hybrid")
@@ -76,21 +67,10 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
 
         (inf.gjrgarch.norm <- t(infocriteria(myfit.gjrgarch.norm)))
         
-        ###########
-        myspec.gjrgarch.norm.archm <- ugarchspec(variance.model = list(model = "gjrGARCH",garchOrder = c(1,1)),
-                                           mean.model = list(armaOrder = c(0,0),
-                                                             archm = TRUE,
-                                                             archpow = 2),
-                                           distribution.model = "norm")
-        
-        myfit.gjrgarch.norm.archm <- ugarchfit(myspec.gjrgarch.norm.archm, data = training.set, solver = "hybrid")
-        
-        
-        (inf.gjrgarch.norm.archm <- t(infocriteria(myfit.gjrgarch.norm.archm)))
         
         ##################
         myspec.sgarch.snorm <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
-                                          mean.model = list(armaOrder = c(0,0)),
+                                          mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                           distribution.model = "snorm")
         
         myfit.sgarch.snorm <- ugarchfit(myspec.sgarch.snorm, data = training.set, solver = "hybrid")
@@ -98,21 +78,20 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
 
         (inf.sgarch.snorm <- t(infocriteria(myfit.sgarch.snorm)))
         
-        ##################
-        myspec.sgarch.snorm.archm <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
-                                          mean.model = list(armaOrder = c(0,0),
-                                                            archm = TRUE,
-                                                            archpow = 2),
-                                          distribution.model = "snorm")
+        ####
+        myspec.aparch.snorm <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(1,1)),
+                                         mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                         distribution.model = "snorm")
         
-        myfit.sgarch.snorm.archm <- ugarchfit(myspec.sgarch.snorm.archm, data = training.set, solver = "hybrid")
+        myfit.aparch.snorm <- ugarchfit(myspec.aparch.snorm, data = training.set, solver = "hybrid")
         
         
-        (inf.sgarch.snorm.archm <- t(infocriteria(myfit.sgarch.snorm.archm)))
+        (inf.aparch.snorm <- t(infocriteria(myfit.aparch.snorm)))
         
-        ################
+        
+                ################
         myspec.igarch.snorm <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
-                                          mean.model = list(armaOrder = c(0,0)),
+                                          mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                           distribution.model = "snorm")
         
         myfit.igarch.snorm <- ugarchfit(myspec.igarch.snorm, data = training.set, solver = "hybrid")
@@ -120,22 +99,10 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
 
         (inf.igarch.snorm <- t(infocriteria(myfit.igarch.snorm)))
         
-        ################
-        myspec.igarch.snorm.archm <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
-                                          mean.model = list(armaOrder = c(0,0),
-                                                            archm = TRUE,
-                                                            archpow = 2),
-                                          distribution.model = "snorm")
-        
-        myfit.igarch.snorm.archm <- ugarchfit(myspec.igarch.snorm.archm, data = training.set, solver = "hybrid")
-        
-        
-        (inf.igarch.snorm.archm <- t(infocriteria(myfit.igarch.snorm.archm)))
-        
         
         ######
         myspec.egarch.snorm <- ugarchspec(variance.model = list(model = "eGARCH",garchOrder = c(1,1)),
-                                          mean.model = list(armaOrder = c(0,0)),
+                                          mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                           distribution.model = "snorm")
         
         myfit.egarch.snorm <- ugarchfit(myspec.egarch.snorm, data = training.set, solver = "hybrid")
@@ -146,7 +113,7 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
         
         ######
         myspec.gjrgarch.snorm <- ugarchspec(variance.model = list(model = "gjrGARCH",garchOrder = c(1,1)),
-                                            mean.model = list(armaOrder = c(0,0)),
+                                            mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                             distribution.model = "snorm")
         
         myfit.gjrgarch.snorm <- ugarchfit(myspec.gjrgarch.snorm, data = training.set, solver = "hybrid")
@@ -154,10 +121,10 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
 
         (inf.gjrgarch.snorm <- t(infocriteria(myfit.gjrgarch.snorm)))
         
-        ######
+        
         
         myspec.sgarch.std <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
-                                        mean.model = list(armaOrder = c(0,0)),
+                                        mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                         distribution.model = "std")
         
         myfit.sgarch.std <- ugarchfit(myspec.sgarch.std, data = training.set, solver = "hybrid")
@@ -165,10 +132,19 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
         
         (inf.sgarch.std <- t(infocriteria(myfit.sgarch.std)))
         
-
+        ####
+        myspec.aparch.std <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(1,1)),
+                                         mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                         distribution.model = "std")
+        
+        myfit.aparch.std <- ugarchfit(myspec.aparch.std, data = training.set, solver = "hybrid")
+        
+        
+        (inf.aparch.std <- t(infocriteria(myfit.aparch.std)))
+        
         ######
         myspec.igarch.std <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
-                                        mean.model = list(armaOrder = c(0,0)),
+                                        mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                         distribution.model = "std")
         
         myfit.igarch.std <- ugarchfit(myspec.igarch.std, data = training.set, solver = "hybrid")
@@ -178,20 +154,8 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
         
 
         ######
-        myspec.igarch.std.archm <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
-                                        mean.model = list(armaOrder = c(0,0),
-                                                          archm = TRUE,
-                                                          archpow = 2),
-                                        distribution.model = "std")
-        
-        myfit.igarch.std.archm <- ugarchfit(myspec.igarch.std.archm, data = training.set, solver = "hybrid")
-        
-        
-        (inf.igarch.std.archm <- t(infocriteria(myfit.igarch.std.archm)))
-        
-        ######
         myspec.egarch.std <- ugarchspec(variance.model = list(model = "eGARCH",garchOrder = c(1,1)),
-                                        mean.model = list(armaOrder = c(0,0)),
+                                        mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                         distribution.model = "std")
         
         myfit.egarch.std <- ugarchfit(myspec.egarch.std, data = training.set, solver = "hybrid")
@@ -202,7 +166,7 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
 
         ######
         myspec.gjrgarch.std <- ugarchspec(variance.model = list(model = "gjrGARCH",garchOrder = c(1,1)),
-                                          mean.model = list(armaOrder = c(0,0)),
+                                          mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                           distribution.model = "std")
         
         myfit.gjrgarch.std <- ugarchfit(myspec.gjrgarch.std, data = training.set, solver = "hybrid")
@@ -214,7 +178,7 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
         
         ######
         myspec.sgarch.sstd <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
-                                         mean.model = list(armaOrder = c(0,0)),
+                                         mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                          distribution.model = "sstd")
         
         myfit.sgarch.sstd <- ugarchfit(myspec.sgarch.sstd, data = training.set, solver = "hybrid")
@@ -222,40 +186,30 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
 
         (inf.sgarch.sstd <- t(infocriteria(myfit.sgarch.sstd)))
         
-
-        ######
-        myspec.igarch.sstd.11 <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
-                                         mean.model = list(armaOrder = c(0,0)),
+        ####
+        myspec.aparch.sstd <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(1,1)),
+                                         mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                          distribution.model = "sstd")
         
-        myfit.igarch.sstd.11 <- ugarchfit(myspec.igarch.sstd.11, data = training.set, solver = "hybrid")
+        myfit.aparch.sstd <- ugarchfit(myspec.aparch.sstd, data = training.set, solver = "hybrid")
         
-
-        (inf.igarch.sstd.11 <- t(infocriteria(myfit.igarch.sstd.11)))
+        
+        (inf.aparch.sstd <- t(infocriteria(myfit.aparch.sstd)))
         
         ######
-        myspec.igarch.sstd.21 <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(2,1)),
-                                            mean.model = list(armaOrder = c(0,0)),
-                                            distribution.model = "sstd")
+        myspec.igarch.sstd <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
+                                         mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                         distribution.model = "sstd")
         
-        myfit.igarch.sstd.21 <- ugarchfit(myspec.igarch.sstd.21, data = training.set, solver = "hybrid")
+        myfit.igarch.sstd <- ugarchfit(myspec.igarch.sstd, data = training.set, solver = "hybrid")
         
-        
-        (inf.igarch.sstd.21 <- t(infocriteria(myfit.igarch.sstd.21)))
 
-        ######
-        myspec.igarch.sstd.12 <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,2)),
-                                            mean.model = list(armaOrder = c(0,0)),
-                                            distribution.model = "sstd")
+        (inf.igarch.sstd <- t(infocriteria(myfit.igarch.sstd)))
         
-        myfit.igarch.sstd.12 <- ugarchfit(myspec.igarch.sstd.12, data = training.set, solver = "hybrid")
-        
-        
-        (inf.igarch.sstd.12 <- t(infocriteria(myfit.igarch.sstd.12)))
-        
+
         ######
         myspec.egarch.sstd <- ugarchspec(variance.model = list(model = "eGARCH",garchOrder = c(1,1)),
-                                         mean.model = list(armaOrder = c(0,0)),
+                                         mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                          distribution.model = "sstd")
         
         myfit.egarch.sstd <- ugarchfit(myspec.egarch.sstd, data = training.set, solver = "hybrid")
@@ -266,7 +220,7 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
 
         ######
         myspec.gjrgarch.sstd <- ugarchspec(variance.model = list(model = "gjrGARCH",garchOrder = c(1,1)),
-                                           mean.model = list(armaOrder = c(0,0)),
+                                           mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                            distribution.model = "sstd")
         
         myfit.gjrgarch.sstd <- ugarchfit(myspec.gjrgarch.sstd, data = training.set, solver = "hybrid")
@@ -275,9 +229,10 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
         (inf.gjrgarch.sstd <- t(infocriteria(myfit.gjrgarch.sstd)))
         
 
+        
         ######
         myspec.sgarch.ged <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
-                                        mean.model = list(armaOrder = c(0,0)),
+                                        mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                         distribution.model = "ged")
         
         myfit.sgarch.ged <- ugarchfit(myspec.sgarch.ged, data = training.set, solver = "hybrid")
@@ -286,9 +241,20 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
         (inf.sgarch.ged <- t(infocriteria(myfit.sgarch.ged)))
         
 
+        ####
+        myspec.aparch.ged <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(1,1)),
+                                         mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                         distribution.model = "ged")
+        
+        myfit.aparch.ged <- ugarchfit(myspec.aparch.ged, data = training.set, solver = "hybrid")
+        
+        
+        (inf.aparch.ged <- t(infocriteria(myfit.aparch.ged)))
+        
+        
         ######
         myspec.igarch.ged <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
-                                        mean.model = list(armaOrder = c(0,0)),
+                                        mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                         distribution.model = "ged")
         
         myfit.igarch.ged <- ugarchfit(myspec.igarch.ged, data = training.set, solver = "hybrid")
@@ -298,20 +264,8 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
         
 
         ######
-        myspec.igarch.ged.archm <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
-                                        mean.model = list(armaOrder = c(0,0),
-                                                          archm = TRUE,
-                                                          archpow = 2),
-                                        distribution.model = "ged")
-        
-        myfit.igarch.ged.archm <- ugarchfit(myspec.igarch.ged.archm, data = training.set, solver = "hybrid")
-        
-        
-        (inf.igarch.ged.archm <- t(infocriteria(myfit.igarch.ged.archm)))
-        
-        ######
         myspec.gjrgarch.ged <- ugarchspec(variance.model = list(model = "gjrGARCH",garchOrder = c(1,1)),
-                                          mean.model = list(armaOrder = c(0,0)),
+                                          mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                           distribution.model = "ged")
         
         myfit.gjrgarch.ged <- ugarchfit(myspec.gjrgarch.ged, data = training.set, solver = "hybrid")
@@ -323,7 +277,7 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
         
         ######
         myspec.sgarch.sged <- ugarchspec(variance.model = list(model = "sGARCH",garchOrder = c(1,1)),
-                                         mean.model = list(armaOrder = c(0,0)),
+                                         mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                          distribution.model = "sged")
         
         myfit.sgarch.sged <- ugarchfit(myspec.sgarch.sged, data = training.set, solver = "hybrid")
@@ -332,9 +286,20 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
         (inf.sgarch.sged <- t(infocriteria(myfit.sgarch.sged)))
         
 
+        ####
+        myspec.aparch.sged <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(1,1)),
+                                         mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
+                                         distribution.model = "sged")
+        
+        myfit.aparch.sged <- ugarchfit(myspec.aparch.sged, data = training.set, solver = "hybrid")
+        
+        
+        (inf.aparch.sged <- t(infocriteria(myfit.aparch.sged)))
+        
+        
         ######
         myspec.igarch.sged <- ugarchspec(variance.model = list(model = "iGARCH",garchOrder = c(1,1)),
-                                         mean.model = list(armaOrder = c(0,0)),
+                                         mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                          distribution.model = "sged")
         
         myfit.igarch.sged <- ugarchfit(myspec.igarch.sged, data = training.set, solver = "hybrid")
@@ -343,9 +308,10 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
         (inf.igarch.sged <- t(infocriteria(myfit.igarch.sged)))
         
 
+        
         ######
         myspec.gjrgarch.sged <- ugarchspec(variance.model = list(model = "gjrGARCH",garchOrder = c(1,1)),
-                                           mean.model = list(armaOrder = c(0,0)),
+                                           mean.model = list(armaOrder = c(fit.arima.kdj.k$arma[1],fit.arima.kdj.k$arma[2])),
                                            distribution.model = "sged")
         
         myfit.gjrgarch.sged <- ugarchfit(myspec.gjrgarch.sged, data = training.set, solver = "hybrid")
@@ -354,8 +320,6 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
         (inf.gjrgarch.sged <- t(infocriteria(myfit.gjrgarch.sged)))
         
 
-        
-        ######
         
         aic.name <- c("inf.sgarch.norm",
                       "inf.sgarch.snorm",
@@ -366,9 +330,7 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
                       "inf.igarch.norm",
                       "inf.igarch.snorm",
                       "inf.igarch.std",
-                      "inf.igarch.sstd.11",
-                      "inf.igarch.sstd.21",
-                      "inf.igarch.sstd.12",
+                      "inf.igarch.sstd",
                       "inf.igarch.ged",
                       "inf.igarch.sged",
                       "inf.egarch.norm",
@@ -381,13 +343,12 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
                       "inf.gjrgarch.sstd",
                       "inf.gjrgarch.ged",
                       "inf.gjrgarch.sged",
-                      "inf.sgarch.norm.archm",
-                      "inf.igarch.norm.archm",
-                      "inf.gjrgarch.norm.archm",
-                      "inf.sgarch.snorm.archm",
-                      "inf.igarch.snorm.archm",
-                      "inf.igarch.std.archm",
-                      "inf.igarch.ged.archm"
+                      "inf.aparch.norm",
+                      "inf.aparch.snorm",
+                      "inf.aparch.std",
+                      "inf.aparch.sstd",
+                      "inf.aparch.ged",
+                      "inf.aparch.sged"
                       )
         
         aic.value <- rbind(inf.sgarch.norm,
@@ -399,9 +360,7 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
                            inf.igarch.norm,
                            inf.igarch.snorm,
                            inf.igarch.std,
-                           inf.igarch.sstd.11,
-                           inf.igarch.sstd.21,
-                           inf.igarch.sstd.12,
+                           inf.igarch.sstd,
                            inf.igarch.ged,
                            inf.igarch.sged,
                            inf.egarch.norm,
@@ -414,25 +373,19 @@ CompareGarchAicARMA00 <- function(arg.training.set, arg.difference){
                            inf.gjrgarch.sstd,
                            inf.gjrgarch.ged,
                            inf.gjrgarch.sged,
-                           inf.sgarch.norm.archm,
-                           inf.igarch.norm.archm,
-                           inf.gjrgarch.norm.archm,
-                           inf.sgarch.snorm.archm,
-                           inf.igarch.snorm.archm,
-                           inf.igarch.std.archm,
-                           inf.igarch.ged.archm
-                            )
+                           inf.aparch.norm,
+                           inf.aparch.snorm,
+                           inf.aparch.std,
+                           inf.aparch.sstd,
+                           inf.aparch.ged,
+                           inf.aparch.sged
+                           )
         
         #browser()
         aic.df <- data.frame(name = aic.name, round(as.data.frame(aic.value),digits = 2))
         
-        aic.df <- aic.df[order(aic.df[[3]], aic.df[[2]]),]
+        print(aic.df[order(aic.df[[3]], aic.df[[2]]),])
         
-        row.names(aic.df) <- c(1:length(aic.df$name))
-        
-        print(aic.df)
-        
-          
         cat("\n")
         
        

@@ -1,0 +1,945 @@
+---
+title: "Garch Prediction Of Gold Weekly compound return"
+author: "Wu Wei"
+date: "2017-7-28"
+output: html_document
+---
+
+## 0. Preparation
+
+
+```{r Appendix 0.1, echo = FALSE}
+rm(list = ls())
+
+suppressMessages(library(forecast))
+suppressMessages(library(ggplot2))
+suppressMessages(library(rugarch))
+suppressMessages(library(tseries))
+suppressMessages(library(fBasics))
+suppressMessages(library(FinTS))
+```
+
+```{r Appendix 0.2, echo = FALSE}
+source("d://MyR//zhao//CompareObjectAccuracyArimaNolimitation.R")
+
+source("d://MyR//stock//CompareGarchAic.r")
+source("d://MyR//stock//CompareGarchAicArimaNoLimitation.r")
+
+source("d://MyR//stock//CompareGarchAccuracy.R")
+source("d://MyR//stock//CompareGarchsignbias.r")
+source("d://MyR//stock//CompareGarchnyblom.r")
+source("d://MyR//stock//CompareGarchgof.r")
+source("d://MyR//stock//CompareGarchAicFordifferentOrders.r")
+
+```
+
+
+```{r appendix 0.3, echo = TRUE}
+
+
+setwd("d://MyR//stock//")
+
+weekly.original.data <- read.csv("goldweekly.csv")
+
+weekly.close.price <- as.ts(weekly.original.data[,5])
+
+weekly.compound.return <- diff(log(weekly.close.price)) * 100
+
+names(weekly.compound.return) <- weekly.original.data$Time[-1]
+
+```
+
+
+```{r Appendix 0.4}
+summary(weekly.compound.return)
+
+weekly.compound.return[weekly.compound.return == max(weekly.compound.return)]
+
+weekly.compound.return[weekly.compound.return == min(weekly.compound.return)]
+```
+
+```{r Appendix 0.5}
+sd(weekly.compound.return)
+skewness(weekly.compound.return)
+kurtosis(weekly.compound.return)
+jarqueberaTest(weekly.compound.return)
+
+```
+
+## 1. Comparison Between Models 
+
+### 1.1 Enfluence on Models of different training set 
+
+
+```{r Appendix 1.1.1, echo = TRUE, cache=TRUE}
+training.set.420 <- head(weekly.compound.return, 420)
+CompareGarchAic(training.set.420, arg.difference = 0)
+
+```
+
+```{r Appendix 1.1.1(2), echo = TRUE, cache=TRUE}
+
+## auto.arima(stepwise = FALSE, approximation = FALSE)
+
+CompareGarchAicArimaNoLimitation(training.set.420, arg.difference = 0)
+
+```
+
+```{r Appendix 1.1.2, echo = TRUE, cache=TRUE}
+training.set.430 <- head(weekly.compound.return, 430)
+CompareGarchAic(training.set.430, arg.difference = 0)
+
+```
+
+```{r Appendix 1.1.2(2), echo = TRUE, cache=TRUE}
+CompareGarchAicArimaNoLimitation(training.set.430, arg.difference = 0)
+
+```
+
+```{r Appendix 1.1.3, echo = TRUE, cache=TRUE, eval=TRUE}
+training.set.440 <- head(weekly.compound.return, 440)
+CompareGarchAic(training.set.440, arg.difference = 0)
+
+```
+
+```{r Appendix 1.1.3(2), echo = TRUE, cache=TRUE, eval=TRUE}
+CompareGarchAicArimaNoLimitation(training.set.440, arg.difference = 0)
+
+```
+
+```{r Appendix 1.1.4, echo = TRUE, cache=TRUE, eval=TRUE}
+training.set.450 <- head(weekly.compound.return, 450)
+CompareGarchAic(training.set.450, arg.difference = 0)
+
+```
+
+```{r Appendix 1.1.4(2), echo = TRUE, cache=TRUE, eval=TRUE}
+CompareGarchAicArimaNoLimitation(training.set.450, arg.difference = 0)
+
+```
+
+
+```{r Appendix 1.1.5, echo = TRUE, cache=TRUE, eval=TRUE}
+training.set.460 <- head(weekly.compound.return, 460)
+CompareGarchAic(training.set.460, arg.difference = 0)
+
+```
+
+
+```{r Appendix 1.1.5(2), echo = TRUE, cache=TRUE, eval=TRUE}
+CompareGarchAicArimaNoLimitation(training.set.460, arg.difference = 0)
+
+```
+
+## 2. Inspection of Garch Model 
+
+```{r appendix 2.1}
+
+
+comparison.period <- 20
+
+forecast.period <- 4
+
+training.set.endpoint <- length(weekly.compound.return) - comparison.period - forecast.period
+
+maxorder <- 5
+
+
+```
+
+
+```{r appendix 2.2, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+
+## auto.arima use default setting values for stepwise and approximation parameter
+
+result.arima <- CompareObjectAccuracyArimaNolimitation(arg.object = weekly.compound.return,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+```
+
+
+### 2.1 Inspection of leverage 
+
+```{r Appendix 2.1.1, echo = TRUE, cache=TRUE, eval=TRUE}
+
+signbias.sGarchnorm <- CompareGarchsignbias(arg.object = weekly.compound.return,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "norm")
+print(signbias.sGarchnorm)
+
+```
+
+
+```{r Appendix 2.1.2, echo = TRUE, cache=TRUE, eval=TRUE}
+signbias.sGarchstd <- CompareGarchsignbias(arg.object = weekly.compound.return,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "std")
+print(signbias.sGarchstd)
+
+```
+
+```{r Appendix 2.1.3, echo = TRUE, cache=TRUE, eval=TRUE}
+signbias.sGarchged <- CompareGarchsignbias(arg.object = weekly.compound.return,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "ged")
+print(signbias.sGarchged)
+
+```
+
+```{r Appendix 2.1.4, echo = TRUE, cache=TRUE, eval=TRUE}
+signbias.sGarchsstd <- CompareGarchsignbias(arg.object = weekly.compound.return,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima,
+                                                  arg.var.model = "sGARCH",
+                                                  arg.dist.model = "sstd")
+print(signbias.sGarchsstd)
+
+```
+
+```{r Appendix 2.1.5, echo = TRUE, cache=TRUE, eval=TRUE}
+
+signbias.gjrGarchnorm <- CompareGarchsignbias(arg.object = weekly.compound.return,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima,
+                                                  arg.var.model = "gjrGARCH",
+                                                  arg.dist.model = "norm")
+print(signbias.gjrGarchnorm)
+
+```
+
+
+```{r Appendix 2.1.6, echo = TRUE, cache=TRUE, eval=TRUE}
+signbias.gjrGarchstd <- CompareGarchsignbias(arg.object = weekly.compound.return,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima,
+                                                  arg.var.model = "gjrGARCH",
+                                                  arg.dist.model = "std")
+print(signbias.gjrGarchstd)
+
+```
+
+```{r Appendix 2.1.7, echo = TRUE, cache=TRUE, eval=TRUE}
+signbias.eGarchstd <- CompareGarchsignbias(arg.object = weekly.compound.return,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima,
+                                                  arg.var.model = "eGARCH",
+                                                  arg.dist.model = "std")
+print(signbias.eGarchstd)
+
+```
+
+```{r Appendix 2.1.8, echo = TRUE, cache=TRUE, eval=TRUE}
+signbias.apArchstd <- CompareGarchsignbias(arg.object = weekly.compound.return,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima,
+                                                  arg.var.model = "apARCH",
+                                                  arg.dist.model = "std")
+print(signbias.apArchstd)
+
+```
+
+```{r Appendix 2.1.9, echo = TRUE, cache=TRUE, eval=TRUE}
+signbias.apArchnorm <- CompareGarchsignbias(arg.object = weekly.compound.return,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.result.arima = result.arima,
+                                                  arg.var.model = "apARCH",
+                                                  arg.dist.model = "norm")
+print(signbias.apArchnorm)
+
+```
+
+### 2.2 Inspection of parameter stability 
+
+```{r Appendix 2.2.5, echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+nyblom.aparchstd <- CompareGarchnyblom(arg.object = weekly.compound.return,
+                                         arg.forecast.period = forecast.period,
+                                         arg.training.set.endpoint = training.set.endpoint,
+                                         arg.comparison.period = comparison.period,
+                                         arg.result.arima = result.arima,
+                                         arg.var.model = "apARCH",
+                                         arg.dist.model = "std")
+
+nyblom.aparchstd <- round(nyblom.aparchstd, digits = 2)
+print(nyblom.aparchstd[-c((length(nyblom.aparchstd) - 1):length(nyblom.aparchstd))])
+
+
+```
+
+```{r Appendix 2.2.6, echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+nyblom.aparchnorm <- CompareGarchnyblom(arg.object = weekly.compound.return,
+                                         arg.forecast.period = forecast.period,
+                                         arg.training.set.endpoint = training.set.endpoint,
+                                         arg.comparison.period = comparison.period,
+                                         arg.result.arima = result.arima,
+                                         arg.var.model = "apARCH",
+                                         arg.dist.model = "norm")
+
+nyblom.aparchnorm <- round(nyblom.aparchnorm, digits = 2)
+print(nyblom.aparchnorm[-c((length(nyblom.aparchnorm) - 1):length(nyblom.aparchnorm))])
+
+
+```
+
+### 2.3 Inspection of distribution 
+
+```{r Appendix 2.3.5, echo = TRUE, cache=TRUE, eval=TRUE}
+
+gof.aparchnorm <- CompareGarchgof(arg.object = weekly.compound.return,
+                                 arg.forecast.period = forecast.period,
+                                 arg.training.set.endpoint = training.set.endpoint,
+                                 arg.comparison.period = comparison.period,
+                                 arg.result.arima = result.arima,
+                                 arg.var.model = "apARCH",
+                                 arg.dist.model = "norm")
+print(gof.aparchnorm)
+
+```
+
+```{r Appendix 2.3.6, echo = TRUE, cache=TRUE, eval=TRUE}
+
+gof.aparchstd <- CompareGarchgof(arg.object = weekly.compound.return,
+                                 arg.forecast.period = forecast.period,
+                                 arg.training.set.endpoint = training.set.endpoint,
+                                 arg.comparison.period = comparison.period,
+                                 arg.result.arima = result.arima,
+                                 arg.var.model = "apARCH",
+                                 arg.dist.model = "std")
+print(gof.aparchstd)
+
+```
+
+
+## 3. Back test of weekly Models 
+
+### 3.1 Back test
+
+```{r appendix 3.1.5, echo = TRUE, cache=TRUE, eval=TRUE}
+
+result.aparchstd <- CompareGarchAccuracy(arg.object = weekly.compound.return,
+                                          arg.forecast.period = forecast.period,
+                                          arg.training.set.endpoint = training.set.endpoint,
+                                          arg.comparison.period = comparison.period,
+                                          arg.result.arima = result.arima,
+                                          arg.var.model = "apARCH",
+                                          arg.dist.model = "std")
+```
+
+```{r appendix 3.1.6, echo = TRUE, cache=TRUE, eval=TRUE}
+
+result.aparchnorm <- CompareGarchAccuracy(arg.object = weekly.compound.return,
+                                          arg.forecast.period = forecast.period,
+                                          arg.training.set.endpoint = training.set.endpoint,
+                                          arg.comparison.period = comparison.period,
+                                          arg.result.arima = result.arima,
+                                          arg.var.model = "apARCH",
+                                          arg.dist.model = "norm")
+```
+
+### 3.2 Comparison
+
+
+
+#### 3.2.5 aparchstd vs aparchnorm
+
+```{r appendix 3.2.5-1, fig.height=12, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+final.result <- cbind(result.arima,
+                      result.aparchstd,
+                      result.aparchnorm)
+
+
+final.result <- final.result[, -c(5, 8, 13)]
+
+colnames(final.result) <- c("seq", "p","d","q", "RMSE", "p.v",
+                            "RMSE2", "Q.p2","Q.p^2 2","LM.p2",
+                            "RMSE3", "Q.p3","Q.p^2 3","LM.p3")
+
+
+print(final.result)
+```
+
+
+
+```{r appendix 3.2.5-2, eval=TRUE}
+
+rmse.name <- c("aparchnorm",
+               "aparchstd")
+
+rmseBT.count <- c(sum(result.aparchnorm$RMSE > result.arima$RMSE),
+                sum(result.aparchstd$RMSE > result.arima$RMSE))
+
+rmse.meanvalue <- c(mean(result.aparchnorm$RMSE),
+                mean(result.aparchstd$RMSE))
+
+rmse.df <- data.frame(name = rmse.name, 
+                      CountrmseBTarima = rmseBT.count, 
+                      meanvalue = round(rmse.meanvalue,digits = 2))
+
+
+print(rmse.df[order(rmse.df$CountrmseBTarima, rmse.df$meanvalue),])
+
+round(mean(result.arima$RMSE), digits = 2)
+
+```
+
+## 4. Analysis Plots of weekly Garch Models
+
+```{r appendix 4.0.1, fig.height=8, fig.width=10, eval=TRUE}
+fit.arima.object <- auto.arima(weekly.compound.return, seasonal = FALSE) 
+
+tsdisplay((residuals(fit.arima.object))^2)
+```
+
+### 4.2 aparch.std
+
+```{r appendix 4.2.1, cache=TRUE}
+
+inf.result.aparchstd.1 <- CompareGarchAicFordifferentOrders(arg.training.set = weekly.compound.return, 
+                                              arg.arch.order = 1,
+                                              arg.garch.order = 1:7,
+                                              arg.var.model = "apARCH",
+                                              arg.dist.model = "std",
+                                              arg.fit.arima.object = fit.arima.object)
+```
+
+```{r appendix 4.2.2, cache=TRUE}
+
+inf.result.aparchstd.2 <- CompareGarchAicFordifferentOrders(arg.training.set = weekly.compound.return, 
+                                              arg.arch.order = 2,
+                                              arg.garch.order = 1:7,
+                                              arg.var.model = "apARCH",
+                                              arg.dist.model = "std",
+                                              arg.fit.arima.object = fit.arima.object)
+```
+
+```{r appendix 4.2.3, cache=TRUE}
+
+inf.result.aparchstd.3 <- CompareGarchAicFordifferentOrders(arg.training.set = weekly.compound.return, 
+                                              arg.arch.order = 3,
+                                              arg.garch.order = 1:7,
+                                              arg.var.model = "apARCH",
+                                              arg.dist.model = "std",
+                                              arg.fit.arima.object = fit.arima.object)
+```
+
+```{r appendix 4.2.4, cache=TRUE}
+
+inf.result.aparchstd.4 <- CompareGarchAicFordifferentOrders(arg.training.set = weekly.compound.return, 
+                                              arg.arch.order = 4,
+                                              arg.garch.order = 1:7,
+                                              arg.var.model = "apARCH",
+                                              arg.dist.model = "std",
+                                              arg.fit.arima.object = fit.arima.object)
+```
+
+```{r appendix 4.2.5, cache=TRUE}
+
+inf.result.aparchstd.5 <- CompareGarchAicFordifferentOrders(arg.training.set = weekly.compound.return, 
+                                              arg.arch.order = 5,
+                                              arg.garch.order = 1:7,
+                                              arg.var.model = "apARCH",
+                                              arg.dist.model = "std",
+                                              arg.fit.arima.object = fit.arima.object)
+```
+
+```{r appendix 4.2.6, cache=TRUE}
+
+inf.result.aparchstd.6 <- CompareGarchAicFordifferentOrders(arg.training.set = weekly.compound.return, 
+                                              arg.arch.order = 6,
+                                              arg.garch.order = 1:7,
+                                              arg.var.model = "apARCH",
+                                              arg.dist.model = "std",
+                                              arg.fit.arima.object = fit.arima.object)
+```
+
+
+
+```{r appendix 4.2.8}
+aic.df <- rbind(inf.result.aparchstd.1, 
+                inf.result.aparchstd.2,
+                inf.result.aparchstd.3,
+                inf.result.aparchstd.4,
+                inf.result.aparchstd.5,
+                inf.result.aparchstd.6)
+
+print(aic.df[order(aic.df[[3]], aic.df[[4]]),])
+cat("\n")
+
+print(aic.df[order(aic.df[[4]], aic.df[[3]]),])
+cat("\n")
+
+```
+
+#### 4.2.1 aparch.std.53
+
+```{r appendix 4.2.1.1, cache = TRUE, eval=TRUE}
+myspec.aparch.std.53 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,3)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "std")
+
+myfit.aparch.std.53 <- ugarchfit(myspec.aparch.std.53, data = weekly.compound.return, solver = "hybrid")
+
+
+
+show(myfit.aparch.std.53)
+
+```
+
+```{r appendix 4.2.1.2,cache = TRUE,  eval=TRUE}
+myspec.aparch.std.52 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,2)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "std")
+
+myfit.aparch.std.52 <- ugarchfit(myspec.aparch.std.52, data = weekly.compound.return, solver = "hybrid")
+
+
+
+show(myfit.aparch.std.52)
+
+```
+
+```{r appendix 4.2.1.3, cache = TRUE, eval=TRUE}
+myspec.aparch.std.52.ver1 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,2)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "std",
+                                fixed.pars=list(beta1 = 0))
+
+## the first well-done model is based on weekly.compound.return[1:469]
+
+myfit.aparch.std.52.ver1 <- ugarchfit(myspec.aparch.std.52.ver1, data = weekly.compound.return, solver = "hybrid")
+
+
+
+show(myfit.aparch.std.52.ver1)
+
+```
+
+```{r appendix 4.2.1.3 test, eval=TRUE}
+length(residuals(myfit.aparch.std.52.ver1))
+
+length(weekly.compound.return)
+
+```
+
+
+```{r appendix 4.2.1.3(2), cache = TRUE, eval=TRUE}
+skewness(weekly.compound.return)
+skewness(as.numeric(residuals(myfit.aparch.std.52.ver1)))
+skewness(as.numeric(residuals(myfit.aparch.std.52.ver1, standardize = TRUE)))
+
+
+kurtosis(weekly.compound.return)
+kurtosis(as.numeric(residuals(myfit.aparch.std.52.ver1)))
+kurtosis(as.numeric(residuals(myfit.aparch.std.52.ver1, standardize = TRUE)))
+
+
+jarqueberaTest(weekly.compound.return)
+jarqueberaTest(as.numeric(residuals(myfit.aparch.std.52.ver1)))
+jarqueberaTest(as.numeric(residuals(myfit.aparch.std.52.ver1, standardize = TRUE)))
+
+```
+
+
+```{r appendix 4.2.1.3(3), fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+plot(myfit.aparch.std.52.ver1, which = 1)
+```
+
+```{r appendix 4.2.1.3(4), fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+plot(myfit.aparch.std.52.ver1, which = 2)
+```
+
+```{r appendix 4.2.1.3(5), fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+plot(myfit.aparch.std.52.ver1, which = 3)
+```
+
+```{r appendix 4.2.1.3(6), fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+plot(myfit.aparch.std.52.ver1, which = 9)
+```
+
+```{r appendix 4.2.1.3(7), fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+plot(myfit.aparch.std.52.ver1, which = 10)
+```
+
+```{r appendix 4.2.1.3(8), fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+plot(myfit.aparch.std.52.ver1, which = 11)
+```
+
+```{r appendix 4.2.1.3(9), fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+plot(myfit.aparch.std.52.ver1, which = 12)
+```
+
+
+```{r appendix 4.2.1.4, cache = TRUE, eval=TRUE}
+myspec.aparch.std.52.ver2 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,2)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "std",
+                                fixed.pars=list(alpha2 = 0, beta1 = 0))
+
+myfit.aparch.std.52.ver2 <- ugarchfit(myspec.aparch.std.52.ver2, data = weekly.compound.return, solver = "hybrid")
+
+
+
+# show(myfit.aparch.std.52.ver2)
+
+```
+
+```{r appendix 4.2.1.5, cache = TRUE, eval=TRUE}
+myspec.aparch.std.53.ver1 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,3)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "std",
+                                fixed.pars=list(alpha2 = 0))
+
+myfit.aparch.std.53.ver1 <- ugarchfit(myspec.aparch.std.53.ver1, data = weekly.compound.return, solver = "hybrid")
+
+
+
+# show(myfit.aparch.std.53.ver1)
+
+```
+
+#### 4.2.2 aparch.std.11
+
+```{r appendix 4.2.2.1, cache = TRUE, eval=TRUE}
+myspec.aparch.std.11 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(1,1)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "std")
+
+myfit.aparch.std.11 <- ugarchfit(myspec.aparch.std.11, data = weekly.compound.return, solver = "hybrid")
+
+
+
+show(myfit.aparch.std.11)
+
+```
+
+
+### 4.5 aparch.norm for all data with simple ARIMA model
+
+```{r appendix 4.5.1, cache=TRUE}
+
+inf.result.aparchnorm.1 <- CompareGarchAicFordifferentOrders(arg.training.set = weekly.compound.return, 
+                                              arg.arch.order = 1,
+                                              arg.garch.order = 1:7,
+                                              arg.var.model = "apARCH",
+                                              arg.dist.model = "norm",
+                                              arg.fit.arima.object = fit.arima.object)
+```
+
+```{r appendix 4.5.2, cache=TRUE}
+
+inf.result.aparchnorm.2 <- CompareGarchAicFordifferentOrders(arg.training.set = weekly.compound.return, 
+                                              arg.arch.order = 2,
+                                              arg.garch.order = 1:7,
+                                              arg.var.model = "apARCH",
+                                              arg.dist.model = "norm",
+                                              arg.fit.arima.object = fit.arima.object)
+```
+
+```{r appendix 4.5.3, cache=TRUE}
+
+inf.result.aparchnorm.3 <- CompareGarchAicFordifferentOrders(arg.training.set = weekly.compound.return, 
+                                              arg.arch.order = 3,
+                                              arg.garch.order = 1:7,
+                                              arg.var.model = "apARCH",
+                                              arg.dist.model = "norm",
+                                              arg.fit.arima.object = fit.arima.object)
+```
+
+```{r appendix 4.5.4, cache=TRUE}
+
+inf.result.aparchnorm.4 <- CompareGarchAicFordifferentOrders(arg.training.set = weekly.compound.return, 
+                                              arg.arch.order = 4,
+                                              arg.garch.order = 1:7,
+                                              arg.var.model = "apARCH",
+                                              arg.dist.model = "norm",
+                                              arg.fit.arima.object = fit.arima.object)
+```
+
+```{r appendix 4.5.5, cache=TRUE}
+
+inf.result.aparchnorm.5 <- CompareGarchAicFordifferentOrders(arg.training.set = weekly.compound.return, 
+                                              arg.arch.order = 5,
+                                              arg.garch.order = 1:7,
+                                              arg.var.model = "apARCH",
+                                              arg.dist.model = "norm",
+                                              arg.fit.arima.object = fit.arima.object)
+```
+
+```{r appendix 4.5.6, cache=TRUE}
+
+inf.result.aparchnorm.6 <- CompareGarchAicFordifferentOrders(arg.training.set = weekly.compound.return, 
+                                              arg.arch.order = 6,
+                                              arg.garch.order = 1:7,
+                                              arg.var.model = "apARCH",
+                                              arg.dist.model = "norm",
+                                              arg.fit.arima.object = fit.arima.object)
+```
+
+```{r appendix 4.5.8}
+aic.df <- rbind(inf.result.aparchnorm.1, 
+                inf.result.aparchnorm.2,
+                inf.result.aparchnorm.3,
+                inf.result.aparchnorm.4,
+                inf.result.aparchnorm.5,
+                inf.result.aparchnorm.6)
+
+print(aic.df[order(aic.df[[3]], aic.df[[4]]),])
+cat("\n")
+
+print(aic.df[order(aic.df[[4]], aic.df[[3]]),])
+cat("\n")
+
+```
+
+#### 4.5.1 aparch.norm.52
+
+
+```{r appendix 4.5.1.1,cache = TRUE,  eval=TRUE}
+myspec.aparch.norm.52 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,2)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "norm")
+
+myfit.aparch.norm.52 <- ugarchfit(myspec.aparch.norm.52, data = weekly.compound.return, solver = "hybrid")
+
+
+
+show(myfit.aparch.norm.52)
+
+```
+
+```{r appendix 4.5.1.2,cache = TRUE,  eval=TRUE}
+myspec.aparch.norm.52.ver1 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,2)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "norm",
+                                fixed.pars=list(alpha2 = 0))
+
+myfit.aparch.norm.52.ver1 <- ugarchfit(myspec.aparch.norm.52.ver1, data = weekly.compound.return, solver = "hybrid")
+
+
+# show(myfit.aparch.norm.52.ver1)
+
+```
+
+```{r appendix 4.5.1.3,cache = TRUE,  eval=TRUE}
+myspec.aparch.norm.52.ver2 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,2)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "norm",
+                                fixed.pars=list(beta1 = 0))
+
+myfit.aparch.norm.52.ver2 <- ugarchfit(myspec.aparch.norm.52.ver2, data = weekly.compound.return, solver = "hybrid")
+
+
+show(myfit.aparch.norm.52.ver2)
+
+```
+
+```{r appendix 4.5.1.4,cache = TRUE,  eval=TRUE}
+myspec.aparch.norm.52.ver3 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,2)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "norm",
+                                fixed.pars=list(beta1 = 0, alpha2 = 0))
+
+myfit.aparch.norm.52.ver3 <- ugarchfit(myspec.aparch.norm.52.ver3, data = weekly.compound.return, solver = "hybrid")
+
+
+# show(myfit.aparch.norm.52.ver3)
+
+```
+
+```{r appendix 4.5.1.5,cache = TRUE,  eval=TRUE}
+myspec.aparch.norm.52.ver4 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,2)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "norm",
+                                fixed.pars=list(beta1 = 0, gamma1 = 1))
+
+myfit.aparch.norm.52.ver4 <- ugarchfit(myspec.aparch.norm.52.ver4, data = weekly.compound.return, solver = "hybrid")
+
+
+show(myfit.aparch.norm.52.ver4)
+
+```
+
+```{r appendix 4.5.1.6,cache = TRUE,  eval=TRUE}
+myspec.aparch.norm.52.ver5 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,2)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "norm",
+                                fixed.pars=list(gamma1 = 1))
+
+myfit.aparch.norm.52.ver5 <- ugarchfit(myspec.aparch.norm.52.ver5, data = weekly.compound.return, solver = "hybrid")
+
+
+show(myfit.aparch.norm.52.ver5)
+
+```
+
+#### 4.5.2 aparch.norm.51
+
+
+```{r appendix 4.5.2.1,cache = TRUE,  eval=TRUE}
+myspec.aparch.norm.51 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,1)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "norm")
+
+myfit.aparch.norm.51 <- ugarchfit(myspec.aparch.norm.51, data = weekly.compound.return, solver = "hybrid")
+
+
+
+show(myfit.aparch.norm.51)
+
+```
+
+```{r appendix 4.5.2.2,cache = TRUE,  eval=TRUE}
+myspec.aparch.norm.51.ver1 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,1)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "norm",
+                                fixed.pars=list(alpha3 = 0))
+
+myfit.aparch.norm.51.ver1 <- ugarchfit(myspec.aparch.norm.51.ver1, data = weekly.compound.return, solver = "hybrid")
+
+
+
+# show(myfit.aparch.norm.51.ver1)
+
+```
+
+```{r appendix 4.5.2.3,cache = TRUE,  eval=TRUE}
+myspec.aparch.norm.51.ver2 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,1)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "norm",
+                                fixed.pars=list(gamma2 = 0))
+
+myfit.aparch.norm.51.ver2 <- ugarchfit(myspec.aparch.norm.51.ver2, data = weekly.compound.return, solver = "hybrid")
+
+
+
+show(myfit.aparch.norm.51.ver2)
+
+```
+
+```{r appendix 4.5.2.4,cache = TRUE,  eval=TRUE}
+myspec.aparch.norm.51.ver3 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,1)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "norm",
+                                fixed.pars=list(gamma1 = 0, gamma2 = 0))
+
+myfit.aparch.norm.51.ver3 <- ugarchfit(myspec.aparch.norm.51.ver3, data = weekly.compound.return, solver = "hybrid")
+
+
+
+show(myfit.aparch.norm.51.ver3)
+
+```
+
+```{r appendix 4.5.2.5, cache = TRUE, eval=TRUE}
+skewness(weekly.compound.return)
+skewness(as.numeric(residuals(myfit.aparch.norm.51.ver3)))
+skewness(as.numeric(residuals(myfit.aparch.norm.51.ver3, standardize = TRUE)))
+
+
+kurtosis(weekly.compound.return)
+kurtosis(as.numeric(residuals(myfit.aparch.norm.51.ver3)))
+kurtosis(as.numeric(residuals(myfit.aparch.norm.51.ver3, standardize = TRUE)))
+
+
+jarqueberaTest(weekly.compound.return)
+jarqueberaTest(as.numeric(residuals(myfit.aparch.norm.51.ver3)))
+jarqueberaTest(as.numeric(residuals(myfit.aparch.norm.51.ver3, standardize = TRUE)))
+
+```
+
+
+#### 4.5.3 aparch.norm.12
+
+
+```{r appendix 4.5.3.1,cache = TRUE,  eval=TRUE}
+myspec.aparch.norm.12 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(1,2)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "norm")
+
+myfit.aparch.norm.12 <- ugarchfit(myspec.aparch.norm.12, data = weekly.compound.return, solver = "hybrid")
+
+
+
+show(myfit.aparch.norm.12)
+
+```
+
+```{r appendix 4.5.3.2,cache = TRUE,  eval=TRUE}
+myspec.aparch.norm.12.ver1 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(1,2)),
+                                mean.model = list(armaOrder = c(fit.arima.object$arma[1],
+                                                                fit.arima.object$arma[2])),
+                                distribution.model = "norm",
+                                fixed.pars=list(beta1 = 0))
+
+myfit.aparch.norm.12.ver1 <- ugarchfit(myspec.aparch.norm.12.ver1, data = weekly.compound.return, solver = "hybrid")
+
+
+
+show(myfit.aparch.norm.12.ver1)
+
+```
+
+## 5. Forecasts of weekly Garch Models
+
+### 5.1 aparch.std
+
+```{r appendix 5.1.1, fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+suppressWarnings(fc.aparch.std.52.ver1 <- ugarchforecast(myfit.aparch.std.52.ver1, n.ahead = 4))
+
+fc.aparch.std.52.ver1
+```
+
+```{r appendix 5.1.2, fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+plot(fc.aparch.std.52.ver1, which = 1)
+```
+
+```{r appendix 5.1.3, fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+plot(fc.aparch.std.52.ver1, which = 3)
+```
+

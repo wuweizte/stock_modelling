@@ -1,13 +1,15 @@
 ---
 title: "ARIMA Prediction Of Gold compound return"
 author: "Wu Wei"
-date: "2017-7-4"
+date: "2017-8-19"
 output: html_document
 ---
 
 
 
 ```{r library, echo = FALSE}
+rm(list = ls())
+
 suppressMessages(library(forecast))
 suppressMessages(library(ggplot2))
 suppressMessages(library(rugarch))
@@ -16,52 +18,79 @@ suppressMessages(library(tseries))
 suppressMessages(library(fBasics))
 suppressMessages(library(Rdonlp2))
 suppressMessages(library("FinTS"))
+suppressMessages(library("vars"))
+```
+
+```{r source, echo = FALSE}
+source("d://MyR//stock//CompareObjectGoldDollarVARAccuracy.r")
+source("d://MyR//stock//CompareObjectNNARAccuracy.r")
+source("d://MyR//stock//CompareObjectAccuracy.R")
+
 ```
 
 
 ## 1.Analyse for monthly gold price
 
 
-```{r appendix 1.1-1, echo = TRUE}
-rm(list = ls())
+```{r appendix 1-1, echo = TRUE}
+
 
 setwd("d://MyR//stock//")
 monthly.original.data <- read.csv("goldmonthly.csv")
 # View(monthly.original.data)
 
+monthly.close.price <- monthly.original.data$Close
+monthly.dollar.index <- monthly.original.data$dollarindex
 
-monthly.close.price <- as.ts(monthly.original.data[,5])
+## The last month has not passed completely. So it is cancelled.
+monthly.close.price <- monthly.close.price[-length(monthly.close.price)]
+monthly.dollar.index <- monthly.dollar.index[-length(monthly.dollar.index)]
 
-# View(data.frame(monthly.original.data, c(0, diff(log(monthly.close.price)))))
 
-monthly.compound.return <- diff(log(monthly.close.price)) * 100
+## 19900101 ~ 20170630
+
+monthly.gold.compound.return <- diff(log(monthly.close.price)) * 100
+names(monthly.gold.compound.return) <- monthly.original.data$Time[-c(1,length(monthly.original.data$Time))]
+monthly.gold.compound.return <- ts(monthly.gold.compound.return, start = c(1990, 2), frequency = 12)
+
+
+monthly.dollar.compound.return <- diff(log(monthly.dollar.index)) * 100
+names(monthly.dollar.compound.return) <- monthly.original.data$Time[-c(1,length(monthly.original.data$Time))]
+monthly.dollar.compound.return <- ts(monthly.dollar.compound.return, start = c(1990, 2), frequency = 12)
+```
+
+
+```{r appendix 1-2, fig.height=8, fig.width=10}
+
+tsdisplay(monthly.gold.compound.return)
+```
+
+```{r appendix 1-3, eval=TRUE}
+
+ndiffs(monthly.gold.compound.return)
 
 ```
 
 
-```{r, fig.height=8, fig.width=10}
+```{r Appendix 1-4}
+summary(monthly.gold.compound.return)
 
-tsdisplay(monthly.compound.return)
+monthly.gold.compound.return[monthly.gold.compound.return == max(monthly.gold.compound.return)]
+
+monthly.gold.compound.return[monthly.gold.compound.return == min(monthly.gold.compound.return)]
 ```
 
-```{r, eval=TRUE}
-
-ndiffs(monthly.compound.return)
-
-```
-
-```{r}
-mean(monthly.compound.return)
-sd(monthly.compound.return)
-skewness(monthly.compound.return)
-kurtosis(monthly.compound.return)
-jarqueberaTest(monthly.compound.return)
+```{r appendix 1-5}
+mean(monthly.gold.compound.return)
+sd(monthly.gold.compound.return)
+skewness(monthly.gold.compound.return)
+kurtosis(monthly.gold.compound.return)
+jarqueberaTest(monthly.gold.compound.return)
 
 ```
 
-```{r,eval=TRUE}
-
-(fit.arima.monthly.return <- auto.arima(monthly.compound.return, 
+```{r appendix 1-6, cache=TRUE, eval=TRUE}
+(fit.arima.monthly.return <- auto.arima(monthly.gold.compound.return, seasonal = FALSE,
                                                   stepwise = FALSE, approximation = FALSE))
 
 ```
@@ -69,7 +98,7 @@ jarqueberaTest(monthly.compound.return)
 ### 1.1 White Noise Test
 
 
-```{r Monthly Verification--White Noise Test, cache=FALSE, eval=TRUE}
+```{r  appendix 1.1-1, cache=FALSE, eval=TRUE}
 
 
 Box.test(residuals(fit.arima.monthly.return), 
@@ -84,7 +113,7 @@ Box.test(residuals(fit.arima.monthly.return),
 
 ### 1.2  Relationship Between Residuals And Time
 
-```{r main 3.2, fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
+```{r appendix 1.2-1, fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
 
 plot(residuals(fit.arima.monthly.return), axes = TRUE)
 abline(h = 0, col = "red")
@@ -93,7 +122,7 @@ abline(h = 0, col = "red")
 
 ### 1.3 Relationship Between Residuals And Fitted Value
 
-```{r main 3.3, fig.height=6, fig.width=10, eval=TRUE}
+```{r appendix 1.3-1, fig.height=6, fig.width=10, eval=TRUE}
 
 plot(as.numeric(residuals(fit.arima.monthly.return)) ~ as.numeric(fitted(fit.arima.monthly.return)))
 abline(h = 0, col = "red")
@@ -104,7 +133,7 @@ abline(h = 0, col = "red")
 
 ### 1.4 Normality of Residuals
 
-```{r Monthly Verification--Normality of Residuals, fig.height=6, fig.width=10, eval=TRUE}
+```{r appendix 1.4-1, fig.height=6, fig.width=10, eval=TRUE}
 
 qqnorm(residuals(fit.arima.monthly.return))
 qqline(residuals(fit.arima.monthly.return))
@@ -115,7 +144,7 @@ qqline(residuals(fit.arima.monthly.return))
 ### 1.5 ARCH Effect Test
 
 
-```{r Monthly Verification 3.5, eval=TRUE}
+```{r appendix 1.5-1, eval=TRUE}
 
 Box.test((residuals(fit.arima.monthly.return))^2, 
          lag=10, 
@@ -133,36 +162,39 @@ ArchTest(residuals(fit.arima.monthly.return))
 
 ## 2 Comparison of pure Arima model with naive model
 
-```{r appendix 3.6, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
-source("d://MyR//stock//CompareObjectNaiveAccuracy.R")
-source("d://MyR//stock//CompareObjectAccuracy.R")
+```{r appendix 2-1, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+
+
 
 comparison.period <- 20
 
 forecast.period <- 4
 
-training.set.endpoint <- length(monthly.compound.return) - comparison.period - forecast.period
+training.set.endpoint <- length(monthly.gold.compound.return) - comparison.period - forecast.period
 
 maxorder <- 5
 ```
 
-```{r appendix 3.6(1), fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
-result.naive <- CompareObjectNaiveAccuracy(arg.object = monthly.compound.return,
+```{r appendix 2-2, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+source("d://MyR//stock//CompareObjectNaiveAccuracy.R")
+result.naive <- CompareObjectNaiveAccuracy(arg.object = monthly.gold.compound.return,
                                                  arg.forecast.period = forecast.period,
                                                  arg.training.set.endpoint = training.set.endpoint,
                                                  arg.comparison.period = comparison.period,
                                                  arg.maxorder = maxorder)
 ```
 
-```{r appendix 3.6(2), fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
-result.pure <- CompareObjectAccuracy(arg.object = monthly.compound.return,
+```{r appendix 2-3, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+source("d://MyR//stock//CompareObjectAccuracy.R")
+
+result.pure <- CompareObjectAccuracy(arg.object = monthly.gold.compound.return,
                                                  arg.forecast.period = forecast.period,
                                                  arg.training.set.endpoint = training.set.endpoint,
                                                  arg.comparison.period = comparison.period,
                                                  arg.maxorder = maxorder)
 ```
 
-```{r appendix 3.6(3), fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+```{r appendix 2-4, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
 t.test(result.pure$RMSE - result.naive$RMSE)
 
 final.result <- cbind(result.pure,
@@ -171,7 +203,7 @@ final.result <- cbind(result.pure,
 
 final.result <- final.result[, -c(8)]
 
-colnames(final.result) <- c("seq", "p","d","q", "dr","RMSE", "p.v",
+colnames(final.result) <- c("seq", "p","d","q", "sigma","RMSE", "p.v",
                             "p2","d2","q2", "dr2","RMSE2", "p.v2")
 
 print(final.result)
@@ -184,25 +216,27 @@ sum(final.result$p.v2 > 0.05)
 
 ```
 
+Arima model should not be replaced by naive model.
+
 
 ## 3 Comparison of pure Arima models
 
-```{r appendix 3.7, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+```{r appendix 3-1, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
 source("d://MyR//zhao//CompareObjectAccuracyArimaNolimitation.R")
 
 
 ```
 
 
-```{r appendix 3.7(2), fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
-result.pure.no.limitation <- CompareObjectAccuracyArimaNolimitation(arg.object = monthly.compound.return,
+```{r appendix 3-2, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+result.pure.no.limitation <- CompareObjectAccuracyArimaNolimitation(arg.object = monthly.gold.compound.return,
                                                  arg.forecast.period = forecast.period,
                                                  arg.training.set.endpoint = training.set.endpoint,
                                                  arg.comparison.period = comparison.period,
                                                  arg.maxorder = maxorder)
 ```
 
-```{r appendix 3.7(3), fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+```{r appendix 3-3, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
 t.test(result.pure$RMSE - result.pure.no.limitation$RMSE)
 
 final.result <- cbind(result.pure,
@@ -211,7 +245,7 @@ final.result <- cbind(result.pure,
 
 final.result <- final.result[, -c(8)]
 
-colnames(final.result) <- c("seq", "p","d","q", "dr","RMSE", "p.v",
+colnames(final.result) <- c("seq", "p","d","q", "sigma","RMSE", "p.v",
                             "p2","d2","q2", "dr2","RMSE2", "p.v2")
 
 print(final.result)
@@ -227,8 +261,8 @@ sum(final.result$p.v2 > 0.05)
 ### 3.1 White Noise Test
 
 
-```{r , cache=FALSE, eval=TRUE}
-(fit.arima.monthly.return.no.limitation <- auto.arima(monthly.compound.return))
+```{r appendix 3.1-1 , cache=FALSE, eval=TRUE}
+(fit.arima.monthly.return.no.limitation <- auto.arima(monthly.gold.compound.return, seasonal = FALSE))
 
 
 Box.test(residuals(fit.arima.monthly.return.no.limitation), 
@@ -243,7 +277,7 @@ Box.test(residuals(fit.arima.monthly.return.no.limitation),
 
 ### 3.2  Relationship Between Residuals And Time
 
-```{r , fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
+```{r appendix 3.2-1 , fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
 
 plot(residuals(fit.arima.monthly.return.no.limitation), axes = TRUE)
 abline(h = 0, col = "red")
@@ -252,20 +286,20 @@ abline(h = 0, col = "red")
 
 ### 3.3 Relationship Between Residuals And Fitted Value
 
-```{r , fig.height=6, fig.width=10, eval=TRUE}
+```{r appendix 3.3-1 , fig.height=6, fig.width=10, eval=TRUE}
 
-# plot(as.numeric(residuals(fit.arima.monthly.return.no.limitation)) ~ as.numeric(fitted(fit.arima.monthly.return.no.limitation)))
-# abline(h = 0, col = "red")
+plot(as.numeric(residuals(fit.arima.monthly.return.no.limitation)) ~ as.numeric(fitted(fit.arima.monthly.return.no.limitation)))
+abline(h = 0, col = "red")
 
 
-plot(as.numeric(residuals(fit.arima.monthly.return.no.limitation)) )
+# plot(as.numeric(residuals(fit.arima.monthly.return.no.limitation)) )
 
 ```
 
 
 ### 3.4 Normality of Residuals
 
-```{r , fig.height=6, fig.width=10, eval=TRUE}
+```{r appendix 3.4-1 , fig.height=6, fig.width=10, eval=TRUE}
 
 qqnorm(residuals(fit.arima.monthly.return.no.limitation))
 qqline(residuals(fit.arima.monthly.return.no.limitation))
@@ -276,7 +310,7 @@ qqline(residuals(fit.arima.monthly.return.no.limitation))
 ### 3.5 ARCH Effect Test
 
 
-```{r , eval=TRUE}
+```{r appendix 3.5-1 , eval=TRUE}
 
 Box.test((residuals(fit.arima.monthly.return.no.limitation))^2, 
          lag=10, 
@@ -293,15 +327,389 @@ ArchTest(residuals(fit.arima.monthly.return.no.limitation))
 ```
 
 
+## 4 Comparison of pure Arima model with arfima model
 
-## 4 Forecast using Arima model
-```{r, eval=TRUE}
+### 4.1 ARFIMA Model With Norm Distribution Assumption
+
+```{r appendix 4.1.1, cache=TRUE, eval=TRUE}
+source("CompareObjectArfimaAccuracy.r")
+result.arfima.norm <- CompareObjectArfimaAccuracy(arg.object = monthly.gold.compound.return,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.dist = "norm")
+
+```
+
+```{r appendix 4.1.2, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+t.test(result.pure$RMSE - result.arfima.norm$RMSE)
+
+final.result <- cbind(result.pure,
+                      result.arfima.norm)
+
+
+final.result <- final.result[, -c(8)]
+
+colnames(final.result) <- c("seq", "p","d","q", "sigma","RMSE", "p.v",
+                            "p2","q2", "RMSE2", "p.v2")
+
+print(final.result)
+
+sum(final.result$RMSE > final.result$RMSE2)
+
+sum(final.result$p.v > 0.05)
+
+sum(final.result$p.v2 > 0.05)
+
+```
+
+### 4.2 ARFIMA Model With Std Distribution Assumption
+
+```{r appendix 4.2.1, cache=TRUE, eval=TRUE}
+source("CompareObjectArfimaAccuracy.r")
+result.arfima.std <- CompareObjectArfimaAccuracy(arg.object = monthly.gold.compound.return,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.dist = "std")
+
+```
+
+```{r appendix 4.2.2, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+t.test(result.pure$RMSE - result.arfima.std$RMSE)
+
+final.result <- cbind(result.pure,
+                      result.arfima.std)
+
+
+final.result <- final.result[, -c(8)]
+
+colnames(final.result) <- c("seq", "p","d","q", "sigma","RMSE", "p.v",
+                            "p2","q2", "RMSE2", "p.v2")
+
+print(final.result)
+
+sum(final.result$RMSE > final.result$RMSE2)
+
+sum(final.result$p.v > 0.05)
+
+sum(final.result$p.v2 > 0.05)
+
+```
+
+```{r appendix 4.2.3, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+t.test(result.arfima.norm$RMSE - result.arfima.std$RMSE)
+
+final.result <- cbind(result.arfima.norm,
+                      result.arfima.std)
+
+
+final.result <- final.result[, -c(6)]
+
+colnames(final.result) <- c("seq", "p","q", "RMSE", "p.v",
+                            "p2","q2", "RMSE2", "p.v2")
+
+print(final.result)
+
+sum(final.result$RMSE > final.result$RMSE2)
+
+sum(final.result$p.v > 0.05)
+
+sum(final.result$p.v2 > 0.05)
+
+```
+
+```{r appendix 4.2.4, cache=TRUE, eval=TRUE}
+autoarfima(data = monthly.gold.compound.return, ar.max = 3, ma.max = 2, 
+                                criterion = "AIC", method = "full", distribution.model = "std")
+```
+
+## 5 Comparison of pure Arima model with VAR model of Gold & dollar
+
+### 5.1 forecast.period = 4
+
+```{r appendix 5.1.1, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+
+
+
+comparison.period <- 20
+
+forecast.period <- 4
+
+training.set.endpoint <- length(monthly.gold.compound.return) - comparison.period - forecast.period
+
+maxorder <- 5
+```
+
+```{r appendix 5.1.2, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+source("d://MyR//stock//CompareObjectAccuracy.R")
+
+result.pure <- CompareObjectAccuracy(arg.object = monthly.gold.compound.return,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+```
+
+```{r appendix 5.1.3, cache=TRUE, eval=TRUE}
+# source("CompareObjectGoldDollarVARAccuracy.r")
+
+gold.dollar <- data.frame(monthly.gold.compound.return, monthly.dollar.compound.return)
+str(gold.dollar)
+
+gold.dollar <- ts(gold.dollar, start = c(1990, 2), frequency = 12)
+```
+
+```{r appendix 5.1.4, cache=TRUE, eval=TRUE}
+result.GoldDollarVAR <- CompareObjectGoldDollarVARAccuracy(arg.object = gold.dollar,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period)
+
+```
+
+
+```{r appendix 5.1.5, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+t.test(result.pure$RMSE - result.GoldDollarVAR$RMSE)
+
+final.result <- cbind(result.pure,
+                      result.GoldDollarVAR)
+
+
+final.result <- final.result[, -c(8)]
+
+colnames(final.result) <- c("seq", "p","d","q", "sigma","RMSE", "p.v",
+                            "RMSE2", "p.v2", "sigma2")
+
+print(final.result)
+
+sum(final.result$RMSE >= final.result$RMSE2)
+
+sum(final.result$p.v > 0.05)
+
+sum(final.result$p.v2 > 0.05)
+
+```
+
+### 5.2 forecast.period = 1
+
+```{r appendix 5.2.1, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+
+
+
+comparison.period <- 30
+
+forecast.period <- 1
+
+training.set.endpoint <- length(monthly.gold.compound.return) - comparison.period - forecast.period
+
+maxorder <- 5
+```
+
+```{r appendix 5.2.2, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+# source("d://MyR//stock//CompareObjectAccuracy.R")
+
+result.pure <- CompareObjectAccuracy(arg.object = monthly.gold.compound.return,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+```
+
+```{r appendix 5.2.3, cache=TRUE, eval=TRUE}
+
+
+gold.dollar <- data.frame(monthly.gold.compound.return, monthly.dollar.compound.return)
+str(gold.dollar)
+
+gold.dollar <- ts(gold.dollar, start = c(1990, 2), frequency = 12)
+```
+
+```{r appendix 5.2.4, cache=TRUE, eval=TRUE}
+source("CompareObjectGoldDollarVARAccuracy.r")
+result.GoldDollarVAR <- CompareObjectGoldDollarVARAccuracy(arg.object = gold.dollar,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period)
+
+```
+
+
+```{r appendix 5.2.5, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+t.test(result.pure$RMSE - result.GoldDollarVAR$RMSE)
+
+final.result <- cbind(result.pure,
+                      result.GoldDollarVAR)
+
+
+final.result <- final.result[, -c(8)]
+
+colnames(final.result) <- c("seq", "p","d","q", "sigma","RMSE", "p.v",
+                            "RMSE2", "p.v2", "sigma2")
+
+print(final.result)
+
+sum(final.result$RMSE >= final.result$RMSE2)
+
+sum(final.result$p.v > 0.05)
+
+sum(final.result$p.v2 > 0.05)
+
+```
+
+```{r appendix 5.2.6, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+final.result.diff <- final.result[final.result$d > 0, ]
+
+t.test(final.result.diff$RMSE - final.result.diff$RMSE2)
+
+```
+
+```{r appendix 5.2.7, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+final.result.no.diff <- final.result[final.result$d == 0, ]
+
+t.test(final.result.no.diff$RMSE - final.result.no.diff$RMSE2)
+
+```
+
+
+
+## 6 Comparison of pure Arima model with NNAR model
+
+### 6.1 forecast.period = 4
+
+```{r appendix 6.1.1, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+
+
+
+comparison.period <- 20
+
+forecast.period <- 4
+
+training.set.endpoint <- length(monthly.gold.compound.return) - comparison.period - forecast.period
+
+maxorder <- 5
+```
+
+```{r appendix 6.1.2, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+source("d://MyR//stock//CompareObjectAccuracy.R")
+
+result.pure <- CompareObjectAccuracy(arg.object = monthly.gold.compound.return,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+```
+
+
+```{r appendix 6.1.4, cache=TRUE, eval=TRUE}
+
+
+result.nnar <- CompareObjectNNARAccuracy(arg.object = monthly.gold.compound.return,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period)
+
+```
+
+
+```{r appendix 6.1.5, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+t.test(result.pure$RMSE - result.nnar$RMSE)
+
+final.result <- cbind(result.pure,
+                      result.nnar)
+
+
+final.result <- final.result[, -c(8)]
+
+# colnames(final.result) <- c("seq", "p","d","q", "sigma","RMSE", "p.v",
+#                             "RMSE2", "p.v2", "sigma2")
+
+colnames(final.result) <- c("seq", "p","d","q", "sigma","RMSE", "p.v",
+                            "p","size","RMSE2")
+
+print(final.result)
+
+sum(final.result$RMSE >= final.result$RMSE2)
+
+sum(final.result$p.v > 0.05)
+
+# sum(final.result$p.v2 > 0.05)
+
+```
+
+### 6.2 forecast.period = 1
+
+```{r appendix 6.2.1, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+
+comparison.period <- 30
+
+forecast.period <- 1
+
+training.set.endpoint <- length(monthly.gold.compound.return) - comparison.period - forecast.period
+
+maxorder <- 5
+```
+
+```{r appendix 6.2.2, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+
+result.pure <- CompareObjectAccuracy(arg.object = monthly.gold.compound.return,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+
+result.nnar <- CompareObjectNNARAccuracy(arg.object = monthly.gold.compound.return,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period)
+
+```
+
+
+```{r appendix 6.2.5, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+t.test(result.pure$RMSE - result.nnar$RMSE)
+
+final.result <- cbind(result.pure,
+                      result.nnar)
+
+
+final.result <- final.result[, -c(8)]
+
+colnames(final.result) <- c("seq", "p","d","q", "sigma","RMSE", "p.v",
+                            "p","size","RMSE2")
+
+print(final.result)
+
+sum(final.result$RMSE >= final.result$RMSE2)
+
+sum(final.result$p.v > 0.05)
+
+# sum(final.result$p.v2 > 0.05)
+
+```
+
+```{r appendix 6.2.6, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+final.result.diff <- final.result[final.result$d > 0, ]
+
+t.test(final.result.diff$RMSE - final.result.diff$RMSE2)
+
+```
+
+```{r appendix 6.2.7, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+final.result.no.diff <- final.result[final.result$d == 0, ]
+
+t.test(final.result.no.diff$RMSE - final.result.no.diff$RMSE2)
+
+```
+
+## 7 Forecast using Arima model
+```{r appendix 7-1, eval=TRUE}
 forecast(fit.arima.monthly.return.no.limitation, h = 1, 
                               level = c(80,95))
 ```
 
-```{r, eval=TRUE}
-tail(monthly.compound.return)
+```{r appendix 7-2, eval=TRUE}
+tail(monthly.gold.compound.return)
 ```
 
 

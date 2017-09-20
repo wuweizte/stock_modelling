@@ -1,0 +1,315 @@
+---
+title: "VAR Prediction for Gold & dollar"
+author: "Wu Wei"
+date: "2017-8-18"
+output: html_document
+---
+
+
+
+```{r library, echo = FALSE}
+suppressMessages(library(forecast))
+suppressMessages(library(ggplot2))
+suppressMessages(library(vars))
+suppressMessages(library(tseries))
+suppressMessages(library(fBasics))
+suppressMessages(library(FinTS))
+```
+
+
+## 1.Analyse for monthly gold compound return
+
+
+```{r appendix 1-1, echo = TRUE}
+rm(list = ls())
+
+setwd("d://MyR//stock//")
+monthly.original.data <- read.csv("goldmonthly.csv")
+# View(monthly.original.data)
+
+
+monthly.close.price <- monthly.original.data$Close
+monthly.dollar.index <- monthly.original.data$dollarindex
+
+## The last month has not passed completely. So it is cancelled.
+monthly.close.price <- monthly.close.price[-length(monthly.close.price)]
+monthly.dollar.index <- monthly.dollar.index[-length(monthly.dollar.index)]
+
+## 19900101 ~ 20170630
+# monthly.close.price <- ts(monthly.close.price, start = c(1990, 1), frequency = 12)
+
+monthly.gold.compound.return <- diff(log(monthly.close.price)) * 100
+
+names(monthly.gold.compound.return) <- monthly.original.data$Time[-c(1,length(monthly.original.data$Time))]
+
+
+monthly.dollar.compound.return <- diff(log(monthly.dollar.index)) * 100
+
+names(monthly.dollar.compound.return) <- monthly.original.data$Time[-c(1,length(monthly.original.data$Time))]
+
+
+cor(monthly.gold.compound.return, monthly.dollar.compound.return)
+
+cor(monthly.gold.compound.return[-length(monthly.gold.compound.return)], monthly.dollar.compound.return[-1])
+```
+
+
+```{r appendix 1-2, fig.height=8, fig.width=10}
+
+tsdisplay(monthly.gold.compound.return)
+```
+
+```{r appendix 1-2(2), fig.height=8, fig.width=10}
+
+tsdisplay(monthly.dollar.compound.return)
+```
+
+```{r appendix 1-3, eval=TRUE}
+
+ndiffs(monthly.gold.compound.return)
+
+```
+
+```{r appendix 1-3(2), eval=TRUE}
+
+ndiffs(monthly.dollar.compound.return)
+
+```
+
+```{r Appendix 1-4}
+summary(monthly.gold.compound.return)
+
+monthly.gold.compound.return[monthly.gold.compound.return == max(monthly.gold.compound.return)]
+
+monthly.gold.compound.return[monthly.gold.compound.return == min(monthly.gold.compound.return)]
+```
+
+
+
+
+```{r appendix 1-5}
+mean(monthly.gold.compound.return)
+sd(monthly.gold.compound.return)
+skewness(monthly.gold.compound.return)
+kurtosis(monthly.gold.compound.return)
+jarqueberaTest(monthly.gold.compound.return)
+
+```
+
+
+```{r appendix 1-6, cache=TRUE, eval=TRUE}
+(fit.arima.gold.monthly.return <- auto.arima(monthly.gold.compound.return, seasonal = FALSE,
+                                                  stepwise = FALSE, approximation = FALSE))
+
+```
+
+### 1.1 White Noise Test
+
+
+```{r  appendix 1.1-1, cache=FALSE, eval=TRUE}
+
+
+Box.test(residuals(fit.arima.gold.monthly.return), 
+         lag=10, 
+         fitdf=sum(fit.arima.gold.monthly.return$arma[c(1,2)]), type = "Lj")
+
+Box.test(residuals(fit.arima.gold.monthly.return), 
+         lag=20, 
+         fitdf=sum(fit.arima.gold.monthly.return$arma[c(1,2)]), type = "Lj")
+
+```
+
+### 1.2  Relationship Between Residuals And Time
+
+```{r appendix 1.2-1, fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
+
+plot(residuals(fit.arima.gold.monthly.return), axes = TRUE)
+abline(h = 0, col = "red")
+
+```
+
+### 1.3 Relationship Between Residuals And Fitted Value
+
+```{r appendix 1.3-1, fig.height=6, fig.width=10, eval=TRUE}
+
+plot(as.numeric(residuals(fit.arima.gold.monthly.return)) ~ as.numeric(fitted(fit.arima.gold.monthly.return)))
+abline(h = 0, col = "red")
+
+
+```
+
+
+### 1.4 Normality of Residuals
+
+```{r appendix 1.4-1, fig.height=6, fig.width=10, eval=TRUE}
+
+qqnorm(residuals(fit.arima.gold.monthly.return))
+qqline(residuals(fit.arima.gold.monthly.return))
+
+
+```
+
+### 1.5 ARCH Effect Test
+
+
+```{r appendix 1.5-1, eval=TRUE}
+
+Box.test((residuals(fit.arima.gold.monthly.return))^2, 
+         lag=10, 
+         fitdf=sum(fit.arima.gold.monthly.return$arma[c(1,2)]), type = "Lj")
+
+Box.test((residuals(fit.arima.gold.monthly.return))^2, 
+         lag=20, 
+         fitdf=sum(fit.arima.gold.monthly.return$arma[c(1,2)]), type = "Lj")
+
+ArchTest(residuals(fit.arima.gold.monthly.return))
+
+
+
+```
+
+## 2.Analyse for monthly dollar index compound return
+
+```{r Appendix 2.0.1}
+summary(monthly.dollar.compound.return)
+
+monthly.dollar.compound.return[monthly.dollar.compound.return == max(monthly.dollar.compound.return)]
+
+monthly.dollar.compound.return[monthly.dollar.compound.return == min(monthly.dollar.compound.return)]
+```
+
+
+```{r appendix 2.0.2}
+mean(monthly.dollar.compound.return)
+sd(monthly.dollar.compound.return)
+skewness(monthly.dollar.compound.return)
+kurtosis(monthly.dollar.compound.return)
+jarqueberaTest(monthly.dollar.compound.return)
+
+```
+
+```{r appendix 2.0.3, cache=TRUE, eval=TRUE}
+(fit.arima.dollar.monthly.return <- auto.arima(monthly.dollar.compound.return, seasonal = FALSE,
+                                                  stepwise = FALSE, approximation = FALSE))
+
+
+```
+
+
+### 2.1 White Noise Test
+
+
+```{r  appendix 2.1-1, cache=FALSE, eval=TRUE}
+
+
+Box.test(residuals(fit.arima.dollar.monthly.return), 
+         lag=10, 
+         fitdf=sum(fit.arima.dollar.monthly.return$arma[c(1,2)]), type = "Lj")
+
+Box.test(residuals(fit.arima.dollar.monthly.return), 
+         lag=20, 
+         fitdf=sum(fit.arima.dollar.monthly.return$arma[c(1,2)]), type = "Lj")
+
+```
+
+### 2.2  Relationship Between Residuals And Time
+
+```{r appendix 2.2-1, fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
+
+plot(residuals(fit.arima.dollar.monthly.return), axes = TRUE)
+abline(h = 0, col = "red")
+
+```
+
+### 2.3 Relationship Between Residuals And Fitted Value
+
+```{r appendix 2.3-1, fig.height=6, fig.width=10, eval=TRUE}
+
+plot(as.numeric(residuals(fit.arima.dollar.monthly.return)) ~ as.numeric(fitted(fit.arima.dollar.monthly.return)))
+abline(h = 0, col = "red")
+
+
+```
+
+
+### 2.4 Normality of Residuals
+
+```{r appendix 2.4-1, fig.height=6, fig.width=10, eval=TRUE}
+
+qqnorm(residuals(fit.arima.dollar.monthly.return))
+qqline(residuals(fit.arima.dollar.monthly.return))
+
+
+```
+
+### 2.5 ARCH Effect Test
+
+
+```{r appendix 2.5-1, eval=TRUE}
+
+Box.test((residuals(fit.arima.dollar.monthly.return))^2, 
+         lag=10, 
+         fitdf=sum(fit.arima.dollar.monthly.return$arma[c(1,2)]), type = "Lj")
+
+Box.test((residuals(fit.arima.dollar.monthly.return))^2, 
+         lag=20, 
+         fitdf=sum(fit.arima.dollar.monthly.return$arma[c(1,2)]), type = "Lj")
+
+ArchTest(residuals(fit.arima.dollar.monthly.return))
+
+
+
+```
+
+## 3.VAR Analyse for Gold & dollar index compound return
+
+```{r Appendix 3.1}
+gold.dollar <- data.frame(monthly.gold.compound.return, monthly.dollar.compound.return)
+str(gold.dollar)
+```
+
+```{r Appendix 3.1(2)}
+gold.dollar.250 <- ts(gold.dollar[1:250,], start = c(1990, 2), frequency = 12)
+VARselect(gold.dollar.250, lag.max=8, type="const")
+```
+
+```{r Appendix 3.1(3)}
+gold.dollar.270 <- ts(gold.dollar[1:270,], start = c(1990, 2), frequency = 12)
+VARselect(gold.dollar.270, lag.max=8, type="const")
+```
+
+```{r Appendix 3.1(4)}
+gold.dollar.290 <- ts(gold.dollar[1:290,], start = c(1990, 2), frequency = 12)
+VARselect(gold.dollar.290, lag.max=8, type="const")
+```
+
+```{r Appendix 3.1(5)}
+gold.dollar.310 <- ts(gold.dollar[1:310,], start = c(1990, 2), frequency = 12)
+VARselect(gold.dollar.310, lag.max=8, type="const")
+```
+
+```{r Appendix 3.1(6)}
+gold.dollar <- ts(gold.dollar, start = c(1990, 2), frequency = 12)
+VARselect(gold.dollar, lag.max=8, type="const")
+```
+
+```{r Appendix 3.2}
+var <- VAR(gold.dollar, p=1, type="const")
+serial.test(var, lags.pt=10, type="PT.asymptotic")
+```
+
+```{r Appendix 3.3}
+summary(var)
+```
+
+```{r Appendix 3.4}
+
+fcst <- forecast(var,h = 2)
+
+fcst
+```
+
+```{r appendix 3.5, fig.height=8, fig.width=10, eval=TRUE}
+plot(fcst, xlab="Year")
+
+```

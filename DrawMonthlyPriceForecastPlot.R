@@ -1,8 +1,5 @@
 DrawMonthlyPriceForecastPlot <- function(arg.close.price, 
-                                        # arg.kdj.k, 
-                                        # arg.kdj.d, 
                                         arg.forecast.period, 
-                                        # arg.ylabel.offset,
                                         arg.xlim.offset,
                                         arg.date){
         
@@ -24,9 +21,10 @@ DrawMonthlyPriceForecastPlot <- function(arg.close.price,
         
 
         fit.price <- auto.arima(arg.close.price, 
-                                       stepwise = FALSE, 
-                                       approximation = FALSE,
-                                       max.order = 5)
+                                stepwise = FALSE, 
+                                seasonal = FALSE,
+                                approximation = FALSE,
+                                max.order = 5)
         
         pvalue.price <- Box.test(residuals(fit.price), lag=10, 
                              fitdf=sum(fit.price$arma[c(1,2)]), 
@@ -36,6 +34,7 @@ DrawMonthlyPriceForecastPlot <- function(arg.close.price,
         if(pvalue.price < 0.05){
                 fit.price <- auto.arima(arg.close.price, 
                                         stepwise = FALSE, 
+                                        seasonal = FALSE,
                                         approximation = FALSE,
                                         max.order = 9)
         }
@@ -50,8 +49,8 @@ DrawMonthlyPriceForecastPlot <- function(arg.close.price,
                                       tail(fc.arima$x, arg.xlim.offset))), digits = 2) - 100
         
         plot(fc.arima, 
-             xlim = c(length(arg.close.price) - arg.xlim.offset,
-                      length(arg.close.price) + arg.forecast.period),
+             xlim = c(tsp(arg.close.price)[2] - arg.xlim.offset / tsp(arg.close.price)[3],
+                      tsp(arg.close.price)[2] + arg.forecast.period / tsp(arg.close.price)[3]),
              ylim = c(y.lower.limit, y.upper.limit),
              type = "l", 
              PI = TRUE, 
@@ -65,16 +64,18 @@ DrawMonthlyPriceForecastPlot <- function(arg.close.price,
         lines((fc.arima$mean + fc.naive$mean) / 2, type = "o", col = "red")
         
         axis(1,
-             at = seq(length(arg.close.price) - arg.xlim.offset,
-                      length(arg.close.price) + arg.forecast.period, 5),
+             at = seq(tsp(arg.close.price)[2] - arg.xlim.offset / tsp(arg.close.price)[3],
+                      tsp(arg.close.price)[2] + arg.forecast.period / tsp(arg.close.price)[3], 
+                      5 / tsp(arg.close.price)[3]),
              labels = FALSE)
         
         date.label <- 
                 arg.date[seq(length(arg.close.price) - arg.xlim.offset,
                                    length(arg.close.price) + arg.forecast.period, 5)]
         
-        text(seq(length(arg.close.price) - arg.xlim.offset,
-                 length(arg.close.price) + arg.forecast.period, 5),
+        text(seq(tsp(arg.close.price)[2] - arg.xlim.offset / tsp(arg.close.price)[3],
+                 tsp(arg.close.price)[2] + arg.forecast.period / tsp(arg.close.price)[3], 
+                 5 / tsp(arg.close.price)[3]),
              par("usr")[3] - 50,
              labels = substr(date.label, 1, 10),
              srt = 45,
@@ -87,8 +88,9 @@ DrawMonthlyPriceForecastPlot <- function(arg.close.price,
 
                 
         
-        abline(v = seq(length(arg.close.price) - arg.xlim.offset,
-                       length(arg.close.price) + arg.forecast.period, 5),
+        abline(v = seq(tsp(arg.close.price)[2] - arg.xlim.offset / tsp(arg.close.price)[3],
+                       tsp(arg.close.price)[2] + arg.forecast.period / tsp(arg.close.price)[3], 
+                       5 / tsp(arg.close.price)[3]),
                col = "springgreen4",
                lty = "dashed",
                lwd = par("lwd"))

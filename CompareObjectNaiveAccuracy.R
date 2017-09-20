@@ -4,18 +4,16 @@ CompareObjectNaiveAccuracy <- function(arg.object,
                                   arg.comparison.period,
                                   arg.maxorder){
         
-        training.set.object.1 <- window(arg.object, #start = 1, 
-                                        end = arg.training.set.endpoint)
-        
-        test.set.object.1 <- window(arg.object, start = arg.training.set.endpoint + 1,
-                                    end = arg.training.set.endpoint + arg.forecast.period)
-        
-        
         # browser()
-        # fit.arima.object.1 <- auto.arima(training.set.object.1,
-        #                                  max.order = arg.maxorder,
-        #                                  stepwise = FALSE,
-        #                                  approximation = FALSE)                
+        time.attribute <- tsp(arg.object)
+        
+        training.set.object.1 <- 
+                window(arg.object,  
+                       end = time.attribute[1] + (arg.training.set.endpoint - 1) / time.attribute[3])
+        
+        test.set.object.1 <- window(arg.object, 
+                                    start = time.attribute[1] + arg.training.set.endpoint / time.attribute[3],
+                                    end = time.attribute[1] + (arg.training.set.endpoint + arg.forecast.period - 1)/ time.attribute[3])
         
         fit.naive.object.1 <- naive(training.set.object.1,h = length(test.set.object.1))
                                     
@@ -34,16 +32,13 @@ CompareObjectNaiveAccuracy <- function(arg.object,
         
         for(i in 1:arg.comparison.period){
 
-                end.point2 <- arg.training.set.endpoint + i
-                training.set.object.2 <- window(arg.object, #start = 1, 
-                                                end = end.point2)
-                test.set.object.2 <- window(arg.object, start = end.point2 + 1,
-                                            end = end.point2 + arg.forecast.period)
-
-                # fit.arima.object.2 <- auto.arima(training.set.object.2,
-                #                                  max.order = arg.maxorder,
-                #                                  stepwise = FALSE,
-                #                                  approximation = FALSE)
+                training.set.object.2 <- 
+                        window(arg.object,  
+                               end = time.attribute[1] + (arg.training.set.endpoint - 1 + i) / time.attribute[3])
+                
+                test.set.object.2 <- window(arg.object, 
+                                            start = time.attribute[1] + (arg.training.set.endpoint + i) / time.attribute[3],
+                                            end = time.attribute[1] + (arg.training.set.endpoint + i + arg.forecast.period - 1)/ time.attribute[3])
 
                 fit.naive.object.2 <- naive(training.set.object.2,h = length(test.set.object.2))
                 # fc.arima.object.2 <- forecast(fit.arima.object.2, h = length(test.set.object.2))

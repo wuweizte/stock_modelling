@@ -7,11 +7,16 @@ CompareGarchAccuracy <- function(arg.object,
                                 arg.dist.model){
         
         
-        training.set.object.1 <- window(arg.object, start = 1, 
-                                        end = arg.training.set.endpoint)
+        time.attribute <- tsp(arg.object)
         
-        test.set.object.1 <- window(arg.object, start = arg.training.set.endpoint + 1,
-                                    end = arg.training.set.endpoint + arg.forecast.period)
+        training.set.object.1 <- 
+                window(arg.object,  
+                       end = time.attribute[1] + (arg.training.set.endpoint - 1) / time.attribute[3])
+        
+        test.set.object.1 <- window(arg.object, 
+                                    start = time.attribute[1] + arg.training.set.endpoint / time.attribute[3],
+                                    end = time.attribute[1] + (arg.training.set.endpoint + arg.forecast.period - 1)/ time.attribute[3])
+        
         
 
         
@@ -43,11 +48,13 @@ CompareGarchAccuracy <- function(arg.object,
                           dim = c(5,1)))
         
         for(i in 1:arg.comparison.period){
-                end.point2 <- arg.training.set.endpoint + i
-                training.set.object.2 <- window(arg.object, start = 1, end = end.point2)
-                test.set.object.2 <- window(arg.object, start = end.point2 + 1,
-                                            end = end.point2 + arg.forecast.period)
-
+                training.set.object.2 <- 
+                        window(arg.object,  
+                               end = time.attribute[1] + (arg.training.set.endpoint - 1 + i) / time.attribute[3])
+                
+                test.set.object.2 <- window(arg.object, 
+                                            start = time.attribute[1] + (arg.training.set.endpoint + i) / time.attribute[3],
+                                            end = time.attribute[1] + (arg.training.set.endpoint + i + arg.forecast.period - 1)/ time.attribute[3])
                 myspec.garch.2 <- ugarchspec(variance.model = list(model = arg.var.model,
                                                                       garchOrder = c(1,1)),
                                                      mean.model = list(armaOrder = c(arg.result.arima$p[i + 1],
