@@ -23,8 +23,8 @@ CompareObjectEstimated2layersXregAccuracy <- function(arg.object,
                                fc.xreg.object.1$mean)
         
         
-        xreg.lagged.df.1 <- data.frame(cbind(xreg.object.est.1,       
-                                             ts(c(NA, xreg.object.est.1[-length(xreg.object.est.1)]))))
+        xreg.lagged.df.1 <- cbind(xreg.object.est.1,       
+                                             ts(c(NA, xreg.object.est.1[-length(xreg.object.est.1)])))
         
         xreg.object.1 <- xreg.lagged.df.1[1:arg.training.set.endpoint,]
         
@@ -77,8 +77,8 @@ CompareObjectEstimated2layersXregAccuracy <- function(arg.object,
                 xreg.object.est.2 <- c(window(arg.reg.variable, start = 1, end = end.point2),
                                        fc.xreg.object.2$mean)
                 
-                xreg.lagged.df.2 <- data.frame(cbind(xreg.object.est.2,       
-                                                     ts(c(NA, xreg.object.est.2[-length(xreg.object.est.2)]))))
+                xreg.lagged.df.2 <- cbind(xreg.object.est.2,       
+                                                     ts(c(NA, xreg.object.est.2[-length(xreg.object.est.2)])))
                 
                 
                 xreg.object.2 <- xreg.lagged.df.2[1:end.point2,]

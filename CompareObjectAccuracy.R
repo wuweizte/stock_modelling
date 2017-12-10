@@ -62,7 +62,7 @@ CompareObjectAccuracy <- function(arg.object,
                 result2 <- t(array(c(arg.training.set.endpoint + i,
                                      fit.arima.object.2$arma[c(1,6,2)],
                                      # ("drift" %in% names(fit.arima.object.2$coef)) * 1,
-                                     round(sqrt(fit.arima.object.1$sigma2),digits = 2),
+                                     round(sqrt(fit.arima.object.2$sigma2),digits = 2),
                                      round(accuracy(fc.arima.object.2, test.set.object.2)[2,2], digits = 1),
                                      round(pvalue, digits = 2)),
                                    dim = c(7,1)))

@@ -5,6 +5,7 @@ CompareObjectXregAccuracy <- function(arg.object,
                                       arg.maxorder,
                                       arg.xreg){
         
+        # browser()
         training.set.object.1 <- window(arg.object, start = 1, 
                                         end = arg.training.set.endpoint)
         
@@ -20,7 +21,7 @@ CompareObjectXregAccuracy <- function(arg.object,
         fit.arima.object.1 <- auto.arima(training.set.object.1,
                                          max.order = arg.maxorder,
                                          stepwise = FALSE,
-                                         approximation = FALSE, 
+                                         approximation = FALSE,
                                          xreg = xreg.object.1)                
         
 
@@ -48,7 +49,7 @@ CompareObjectXregAccuracy <- function(arg.object,
                           dim = c(7,1)))
         
 
-        
+
         for(i in 1:arg.comparison.period){
                 
                 end.point2 <- arg.training.set.endpoint + i

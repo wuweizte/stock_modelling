@@ -12,23 +12,23 @@ CompareKDJDEstimatedKDJKXregAccuracy <- function(arg.object,
         test.set.object.1 <- window(arg.object, start = arg.training.set.endpoint + 1,
                                     end = arg.training.set.endpoint + arg.forecast.period)
         
-        
+
+        ## whether zero difference should be set mandatorily        
         if(arg.zero.d.flag == TRUE){
-                
+
                 fit.xreg.object.1 <- auto.arima(arg.reg.variable[1:arg.training.set.endpoint],
                                                 max.order = arg.maxorder,
                                                 stepwise = FALSE,
                                                 approximation = FALSE,
-                                                d = 0)                                
+                                                d = 0)
         }else{
-                
+
                 fit.xreg.object.1 <- auto.arima(arg.reg.variable[1:arg.training.set.endpoint],
                                                 max.order = arg.maxorder,
                                                 stepwise = FALSE,
-                                                approximation = FALSE)                                
+                                                approximation = FALSE)
         }
-        
-        
+
         fc.xreg.object.1 <- forecast(fit.xreg.object.1, h = length(test.set.object.1))
         
         fc.object <- numeric(0)

@@ -25,7 +25,10 @@ suppressMessages(library("vars"))
 source("d://MyR//stock//CompareObjectGoldDollarVARAccuracy.r")
 source("d://MyR//stock//CompareObjectNNARAccuracy.r")
 source("d://MyR//stock//CompareObjectAccuracy.R")
+source("d://MyR//stock//CompareObjectNaiveAccuracy.R")
+source("d://MyR//stock//CompareObjectArfimaAccuracy.r")
 
+source("d://MyR//zhao//CompareObjectAccuracyArimaNolimitation.R")
 ```
 
 
@@ -176,7 +179,7 @@ maxorder <- 5
 ```
 
 ```{r appendix 2-2, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
-source("d://MyR//stock//CompareObjectNaiveAccuracy.R")
+
 result.naive <- CompareObjectNaiveAccuracy(arg.object = monthly.gold.compound.return,
                                                  arg.forecast.period = forecast.period,
                                                  arg.training.set.endpoint = training.set.endpoint,
@@ -185,7 +188,7 @@ result.naive <- CompareObjectNaiveAccuracy(arg.object = monthly.gold.compound.re
 ```
 
 ```{r appendix 2-3, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
-source("d://MyR//stock//CompareObjectAccuracy.R")
+
 
 result.pure <- CompareObjectAccuracy(arg.object = monthly.gold.compound.return,
                                                  arg.forecast.period = forecast.period,
@@ -221,11 +224,6 @@ Arima model should not be replaced by naive model.
 
 ## 3 Comparison of pure Arima models
 
-```{r appendix 3-1, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
-source("d://MyR//zhao//CompareObjectAccuracyArimaNolimitation.R")
-
-
-```
 
 
 ```{r appendix 3-2, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
@@ -332,7 +330,7 @@ ArchTest(residuals(fit.arima.monthly.return.no.limitation))
 ### 4.1 ARFIMA Model With Norm Distribution Assumption
 
 ```{r appendix 4.1.1, cache=TRUE, eval=TRUE}
-source("CompareObjectArfimaAccuracy.r")
+
 result.arfima.norm <- CompareObjectArfimaAccuracy(arg.object = monthly.gold.compound.return,
                                                   arg.forecast.period = forecast.period,
                                                   arg.training.set.endpoint = training.set.endpoint,
@@ -366,7 +364,6 @@ sum(final.result$p.v2 > 0.05)
 ### 4.2 ARFIMA Model With Std Distribution Assumption
 
 ```{r appendix 4.2.1, cache=TRUE, eval=TRUE}
-source("CompareObjectArfimaAccuracy.r")
 result.arfima.std <- CompareObjectArfimaAccuracy(arg.object = monthly.gold.compound.return,
                                                   arg.forecast.period = forecast.period,
                                                   arg.training.set.endpoint = training.set.endpoint,
@@ -430,8 +427,6 @@ autoarfima(data = monthly.gold.compound.return, ar.max = 3, ma.max = 2,
 
 ```{r appendix 5.1.1, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
 
-
-
 comparison.period <- 20
 
 forecast.period <- 4
@@ -442,7 +437,7 @@ maxorder <- 5
 ```
 
 ```{r appendix 5.1.2, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
-source("d://MyR//stock//CompareObjectAccuracy.R")
+
 
 result.pure <- CompareObjectAccuracy(arg.object = monthly.gold.compound.return,
                                                  arg.forecast.period = forecast.period,
@@ -452,10 +447,8 @@ result.pure <- CompareObjectAccuracy(arg.object = monthly.gold.compound.return,
 ```
 
 ```{r appendix 5.1.3, cache=TRUE, eval=TRUE}
-# source("CompareObjectGoldDollarVARAccuracy.r")
 
-gold.dollar <- data.frame(monthly.gold.compound.return, monthly.dollar.compound.return)
-str(gold.dollar)
+gold.dollar <- cbind(monthly.gold.compound.return, monthly.dollar.compound.return)
 
 gold.dollar <- ts(gold.dollar, start = c(1990, 2), frequency = 12)
 ```
@@ -495,8 +488,6 @@ sum(final.result$p.v2 > 0.05)
 
 ```{r appendix 5.2.1, fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
 
-
-
 comparison.period <- 30
 
 forecast.period <- 1
@@ -507,7 +498,6 @@ maxorder <- 5
 ```
 
 ```{r appendix 5.2.2, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
-# source("d://MyR//stock//CompareObjectAccuracy.R")
 
 result.pure <- CompareObjectAccuracy(arg.object = monthly.gold.compound.return,
                                                  arg.forecast.period = forecast.period,
@@ -517,16 +507,11 @@ result.pure <- CompareObjectAccuracy(arg.object = monthly.gold.compound.return,
 ```
 
 ```{r appendix 5.2.3, cache=TRUE, eval=TRUE}
-
-
-gold.dollar <- data.frame(monthly.gold.compound.return, monthly.dollar.compound.return)
-str(gold.dollar)
-
+gold.dollar <- cbind(monthly.gold.compound.return, monthly.dollar.compound.return)
 gold.dollar <- ts(gold.dollar, start = c(1990, 2), frequency = 12)
 ```
 
 ```{r appendix 5.2.4, cache=TRUE, eval=TRUE}
-source("CompareObjectGoldDollarVARAccuracy.r")
 result.GoldDollarVAR <- CompareObjectGoldDollarVARAccuracy(arg.object = gold.dollar,
                                                   arg.forecast.period = forecast.period,
                                                   arg.training.set.endpoint = training.set.endpoint,
@@ -591,7 +576,7 @@ maxorder <- 5
 ```
 
 ```{r appendix 6.1.2, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
-source("d://MyR//stock//CompareObjectAccuracy.R")
+
 
 result.pure <- CompareObjectAccuracy(arg.object = monthly.gold.compound.return,
                                                  arg.forecast.period = forecast.period,
