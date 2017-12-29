@@ -33,21 +33,30 @@ monthly.original.data <- read.csv("goldmonthly.csv")
 monthly.gold.price <- monthly.original.data$Close
 monthly.dollar.index <- monthly.original.data$dollarindex
 
+monthly.mlcadd <- monthly.original.data$mlcadd
+monthly.mlcdec <- monthly.original.data$mlcdec
+
+
 ## The last month has not passed completely. So it is cancelled.
 monthly.gold.price <- log(monthly.gold.price[-length(monthly.gold.price)])
 monthly.dollar.index <- log(monthly.dollar.index[-length(monthly.dollar.index)])
+
+monthly.mlcadd <- monthly.mlcadd[-length(monthly.mlcadd)]
+monthly.mlcdec <- monthly.mlcdec[-length(monthly.mlcdec)]
 
 ## 19900101 ~ 20170630
 # monthly.gold.price <- ts(monthly.gold.price, start = c(1990, 1), frequency = 12)
 
 monthly.gold.compound.return <- diff(monthly.gold.price) * 100
 
-names(monthly.gold.compound.return) <- monthly.original.data$Time[-c(1,length(monthly.original.data$Time))]
+names(monthly.gold.compound.return) <- 
+        monthly.original.data$Time[-c(1,length(monthly.original.data$Time))]
 
 
 monthly.dollar.compound.return <- diff(monthly.dollar.index) * 100
 
-names(monthly.dollar.compound.return) <- monthly.original.data$Time[-c(1,length(monthly.original.data$Time))]
+names(monthly.dollar.compound.return) <- 
+        monthly.original.data$Time[-c(1,length(monthly.original.data$Time))]
 
 
 cor(monthly.gold.compound.return, monthly.dollar.compound.return)
@@ -265,8 +274,9 @@ ArchTest(residuals(fit.arima.dollar.monthly.return))
 
 ```
 
-## 3.VAR Analyse for Gold & dollar index compound return
+## 3.VAR Analysis for Gold & dollar index compound return
 
+### 3.1 Pure VAR Analysis 
 ```{r Appendix 3.1}
 gold.dollar <- cbind(monthly.gold.compound.return, monthly.dollar.compound.return)
 gold.dollar <- ts(gold.dollar, start = c(1990, 2), frequency = 12)
@@ -306,6 +316,56 @@ fcst
 plot(fcst, xlab="Year")
 
 ```
+
+### 3.2 VAR Analysis with exogenous variables 
+```{r Appendix 3.1}
+VARselect(gold.dollar, lag.max=8, type="const", exogen = cbind(monthly.mlcadd[-1]))
+```
+
+```{r Appendix 3.1(2)}
+gold.dollar.250 <- ts(gold.dollar[1:250,], start = c(1990, 2), frequency = 12)
+VARselect(gold.dollar.250, lag.max=8, type="const")
+```
+
+```{r Appendix 3.2}
+
+trainset.exogen <- cbind(monthly.mlcadd = monthly.mlcadd[-1],
+                          monthly.mlcdec = monthly.mlcdec[-1])
+
+var <- VAR(gold.dollar, p=1, type="const", lag.max = 5, ic = "SC",
+           exogen = trainset.exogen)
+roots(var)
+var$p
+var$varresult
+serial.test(var, lags.pt=10, type="PT.asymptotic")
+
+test.exogen <- cbind(c(0,0),c(0,0))
+predict(var, n.ahead = 2, dumvar = test.exogen)
+```
+
+```{r Appendix 3.3}
+plot(residuals(var)[,1])
+abline(h = 0, col = "red")
+
+plot(residuals(var)[,2])
+abline(h = 0, col = "red")
+```
+
+
+```{r Appendix 3.4}
+
+fcst <- forecast(var,h = 2)
+
+fcst
+```
+
+```{r appendix 3.5, fig.height=8, fig.width=10, eval=TRUE}
+plot(fcst, xlab="Year")
+
+```
+
+
+
 
 ## 4.Cointegration Analysis for Gold price& dollar index 
 ### 4.1 All data 

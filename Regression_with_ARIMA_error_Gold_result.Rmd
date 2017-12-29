@@ -18,9 +18,12 @@ suppressMessages(library(ggplot2))
 suppressMessages(library(FinTS))
 suppressMessages(library(rugarch))
 suppressMessages(library(fNonlinear))
+suppressMessages(library(vars))
 ```
 
 ```{r source files, echo = FALSE}
+setwd("d://MyR//stock//")
+
 source("DrawMonthlyKDJDForecastPlot.R")
 source("DrawWeeklyKDJDForecastPlot.R")
 source("ReturnArimaRollingForecast.r")
@@ -31,7 +34,7 @@ source("ReturnArimaRollingForecast.r")
 
 ```{r main 1.1, echo = FALSE}
 
-setwd("d://MyR//stock//")
+
 monthly.original.data <- read.csv("goldmonthly.csv")
 
 monthly.close.price <- monthly.original.data[,5]
@@ -57,7 +60,7 @@ monthly.kdj.d <- ts(monthly.kdj.d, start = c(1990, 1), frequency = 12)
 
 #### 1.1 Forecast result of monthly kdj k/d 
 
-```{r main 1.2, fig.height=6, fig.width=10, echo = FALSE, cache=TRUE}
+```{r main 1.2, fig.height=6, fig.width=10, echo = FALSE, cache=FALSE}
 
 DrawMonthlyKDJDForecastPlot(monthly.close.price,
                             monthly.kdj.k,
@@ -173,9 +176,7 @@ grid.draw(g)
 ### 2. Forecast result of Weekly kdj k/d and Weekly compound return
 
 ```{r main 2.1, echo = FALSE}
-# rm(list = ls())
 
-setwd("d://MyR//stock//")
 weekly.original.data <- read.csv("goldweekly.csv")
 
 weekly.close.price <- as.ts(weekly.original.data[,5])
@@ -334,7 +335,7 @@ grid.draw(g)
 
 
 
-```{r Monthly Verification--Model, cache=FALSE, eval=TRUE}
+```{r 3.0.1, cache=FALSE, eval=TRUE}
 
 fit.arima.monthly.kdj.d <- auto.arima(monthly.kdj.d,
                               max.order = 5,
@@ -349,6 +350,18 @@ fit.arima.monthly.kdj.k <- auto.arima(monthly.kdj.k,
                               stepwise = FALSE,
                               approximation = FALSE)
 
+```
+
+```{r 3.0.2, cache=FALSE, eval=TRUE}
+
+monthly.kdj <- cbind(monthly.kdj.k, monthly.kdj.d)
+
+var <- VAR(monthly.kdj, p=1, type="const", lag.max = 5, ic = "SC" )
+
+## if max mod of roots is larger than 1, auto.arima is enabled
+max(Mod(roots(var)))
+
+var$p
 
 ```
 
@@ -356,7 +369,7 @@ fit.arima.monthly.kdj.k <- auto.arima(monthly.kdj.k,
 ### 3.1 White Noise Test
 
 
-```{r Monthly Verification--White Noise Test, cache=FALSE, eval=TRUE}
+```{r 3.1.1, cache=FALSE, eval=TRUE}
 
 Box.test(residuals(fit.arima.monthly.kdj.d), lag=10, fitdf=sum(fit.arima.monthly.kdj.d$arma[c(1,2)]), type = "Lj")
 
@@ -366,9 +379,15 @@ Box.test(residuals(fit.arima.monthly.return), lag=10, fitdf=sum(fit.arima.monthl
 
 ```
 
+```{r 3.1.2, cache=FALSE, eval=TRUE}
+
+serial.test(var, lags.pt=10, type="PT.asymptotic")
+```
+
+
 ### 3.2  Relationship Between Residuals And Time
 
-```{r main 3.2, fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
+```{r main 3.2.1, fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
 plot(residuals(fit.arima.monthly.kdj.d), axes = TRUE, main = "Arima( Monthly KDJ.D )")
 abline(h = 0, col = "red")
 
@@ -379,9 +398,16 @@ plot(residuals(fit.arima.monthly.return), axes = TRUE, main = "Arima( Monthly Re
 abline(h = 0, col = "red")
 ```
 
+```{r main 3.2.2, fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
+plot(residuals(var)[,"monthly.kdj.k"], main = "VAR( monthly.kdj.k )")
+abline(h = 0, col = "red")
+
+```
+
+
 ### 3.3 Relationship Between Residuals And Fitted Value
 
-```{r main 3.3, fig.height=6, fig.width=10, eval=TRUE}
+```{r main 3.3.1, fig.height=6, fig.width=10, eval=TRUE}
 
 plot(as.numeric(residuals(fit.arima.monthly.kdj.d)) ~ as.numeric(fitted(fit.arima.monthly.kdj.d)),
      main = "Arima( Monthly KDJ.D )")
@@ -397,10 +423,17 @@ abline(h = 0, col = "red")
 
 ```
 
+```{r main 3.3.2, fig.height=6, fig.width=10, eval=TRUE}
+plot(as.numeric(residuals(var)[,"monthly.kdj.k"]) ~ as.numeric(fitted(var)[,"monthly.kdj.k"]),
+     main = "VAR( Monthly KDJ.K )")
+abline(h = 0, col = "red")
+
+```
+
 
 ### 3.4 Normality of Residuals
 
-```{r Monthly Verification--Normality of Residuals, fig.height=6, fig.width=10, eval=TRUE}
+```{r 3.4.1, fig.height=6, fig.width=10, eval=TRUE}
 
 qqnorm(residuals(fit.arima.monthly.kdj.d), main = "Arima( Monthly KDJ.D )")
 qqline(residuals(fit.arima.monthly.kdj.d))
@@ -413,10 +446,17 @@ qqline(residuals(fit.arima.monthly.return))
 
 ```
 
+```{r 3.4.2, fig.height=6, fig.width=10, eval=TRUE}
+qqnorm(residuals(var)[,"monthly.kdj.k"], main = "VAR( Monthly KDJ.K )")
+qqline(residuals(var)[,"monthly.kdj.k"])
+
+
+```
+
 ### 3.5 ARCH Effect Test
 
 
-```{r Monthly Verification 3.5, eval=TRUE}
+```{r 3.5.1, eval=TRUE}
 
 Box.test((residuals(fit.arima.monthly.kdj.d))^2, lag=10, fitdf=sum(fit.arima.monthly.kdj.d$arma[c(1,2)]), type = "Lj")
 ArchTest(residuals(fit.arima.monthly.kdj.d))
@@ -429,6 +469,11 @@ ArchTest(residuals(fit.arima.monthly.return))
 
 
 ```
+
+```{r 3.5.2, eval=TRUE}
+ArchTest(residuals(var)[,"monthly.kdj.k"])
+```
+
 
 ### 3.6 Non-Linear Test
 

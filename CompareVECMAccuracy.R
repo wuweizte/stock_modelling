@@ -54,17 +54,16 @@ CompareVECMAccuracy <- function(arg.object,
                 
                 flag.1 <- 3
                 if(sum(fcst.1 < -10) > 1){
-                        # fcst.1 <- predict(var.1,n.ahead = length(test.set.object.1[,arg.comparison.colname]))
-                        # fcst.1 <- fcst.1$fcst[[arg.comparison.colname]][,"fcst"]
-                        var.1 <- VAR(diff(training.set.object.1), p=1, 
+
+                        var.1 <- VAR(diff(training.set.object.1), p=1,
                                      type="const", lag.max = 5, ic = "SC" )
                         fcst.1 <- predict(var.1,
                                           n.ahead = length(test.set.object.1[,arg.comparison.colname]))
                         fcst.1 <- as.numeric(tail(training.set.object.1[,arg.comparison.colname],1)) +
                                 cumsum(fcst.1$fcst[[arg.comparison.colname]][,"fcst"])
-                        
+
                         pvalue.1 <- serial.test(var.1, lags.pt=10, type="PT.asymptotic")$serial$p.value
-                        
+
                         sigma.1 <- summary(var.1)$varresult[[arg.comparison.colname]]$sigma
                         flag.1 <- 4
                 }
@@ -82,7 +81,7 @@ CompareVECMAccuracy <- function(arg.object,
                           dim = c(7,1)))
         
         for(i in 1:arg.comparison.period){
-                # browser()
+ 
                 training.set.object.2 <- 
                         window(arg.object,  
                                end = time.attribute[1] + (arg.training.set.endpoint - 1 + i) / time.attribute[3])
@@ -132,17 +131,15 @@ CompareVECMAccuracy <- function(arg.object,
                         sigma.2 <- summary(var.2)$varresult[[arg.comparison.colname]]$sigma
                         flag.2 <- 3
                         if((sum(fcst.2 < -10) > 1) ||(sum(fcst.2 > 100) > 1)){
-                                # fcst.2 <- predict(var.2,n.ahead = length(test.set.object.2[,arg.comparison.colname]))
-                                # fcst.2 <- fcst.2$fcst[[arg.comparison.colname]][,"fcst"]
-                                var.2 <- VAR(diff(training.set.object.2), p=1, 
+                                var.2 <- VAR(diff(training.set.object.2), p=1,
                                              type="const", lag.max = 5, ic = "SC" )
                                 fcst.2 <- predict(var.2,
                                                   n.ahead = length(test.set.object.2[,arg.comparison.colname]))
                                 fcst.2 <- as.numeric(tail(training.set.object.2[,arg.comparison.colname],1)) +
                                         cumsum(fcst.2$fcst[[arg.comparison.colname]][,"fcst"])
                                 pvalue.2 <- serial.test(var.2, lags.pt=10, type="PT.asymptotic")$serial$p.value
-                                
-                                
+
+
                                 sigma.2 <- summary(var.2)$varresult[[arg.comparison.colname]]$sigma
                                 flag.2 <- 4
                         }

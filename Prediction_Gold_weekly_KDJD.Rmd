@@ -1,0 +1,934 @@
+---
+title: "ARIMA Prediction Of Gold--Appendix B"
+author: "Wu Wei"
+date: "2017-12-19"
+output: html_document
+---
+
+#### 2.0 Data Preparation
+
+```{r library, echo = FALSE}
+rm(list = ls())
+
+suppressMessages(library(forecast))
+suppressMessages(library(ggplot2))
+suppressMessages(library(vars))
+suppressMessages(library(urca))
+```
+
+```{r source files, echo = FALSE}
+setwd("d://MyR//stock//")
+
+source("CompareObjectAccuracy.R")
+source("CompareObjectXregAccuracy.R")
+source("CompareObjectEstimated4layersXregAccuracy.R")
+
+source("CompareObjectNaiveAccuracy.R")
+source("CompareObjectZeroDiffAccuracy.R")
+
+source("CompareKDJDEstimatedKDJKXregAccuracy.R")
+```
+
+
+#### 2.1 Forecast relationship between weekly KDJ.D and other variables
+```{r appendix 2.1-1}
+
+weekly.original.data <- read.csv("goldweekly.csv")
+
+weekly.close.price <- as.ts(tail(weekly.original.data[,5], 490))
+weekly.kdj.k <- as.ts(tail(weekly.original.data[,7], 490))
+weekly.kdj.d <- as.ts(tail(weekly.original.data[,8], 490))
+
+weekly.mlcadd <- as.ts(tail(weekly.original.data[,9], 490))
+weekly.mlcdec <- as.ts(tail(weekly.original.data[,10], 490))
+
+training.weekly.close.price <- head(weekly.close.price, 470)
+training.weekly.kdj.k <- head(weekly.kdj.k, 470)
+training.weekly.kdj.d <- head(weekly.kdj.d, 470)
+
+training.weekly.mlcadd <- head(weekly.mlcadd, 470)
+
+training.weekly.mlcdec <- head(weekly.mlcdec, 470)
+
+
+comparison.period <- 20
+
+forecast.period <- 5
+
+maxorder <- 5
+```
+
+
+```{r appendix 2.1.2, echo = TRUE, cache=TRUE, eval=TRUE}
+
+### For lessening caculation, use old value of training.set.endpoint to use old result of some models
+
+training.set.endpoint <- length(weekly.kdj.d) - comparison.period - forecast.period
+
+```
+
+
+
+```{r appendix 2.1-2, echo = TRUE, cache=TRUE, eval=TRUE}
+
+reg.lagged.df <- cbind(as.numeric(training.weekly.kdj.k),
+                as.numeric(training.weekly.kdj.k - training.weekly.kdj.d),
+                as.numeric(training.weekly.close.price),
+
+                ts(c(NA, training.weekly.kdj.k[-length(training.weekly.kdj.k)])),
+                ts(c(NA, training.weekly.kdj.k[-length(training.weekly.kdj.k)] -
+                             training.weekly.kdj.d[-length(training.weekly.kdj.d)])),
+                ts(c(NA, training.weekly.close.price[-length(training.weekly.close.price)])),
+                
+                
+                ts(c(NA, NA, head(training.weekly.kdj.k, length(training.weekly.kdj.k) - 2))),
+                ts(c(NA, NA, head(training.weekly.kdj.k, length(training.weekly.kdj.k) - 2) -
+                             head(training.weekly.kdj.d, length(training.weekly.kdj.d) - 2))),
+                ts(c(NA, NA, head(training.weekly.close.price, length(training.weekly.close.price) - 2))),
+                
+                ts(c(NA, NA, NA, head(training.weekly.kdj.k, length(training.weekly.kdj.k) - 3))),
+                ts(c(NA, NA, NA, head(training.weekly.kdj.k, length(training.weekly.kdj.k) - 3) -
+                             head(training.weekly.kdj.d, length(training.weekly.kdj.d) - 3))),
+                ts(c(NA, NA, NA, head(training.weekly.close.price, length(training.weekly.close.price) - 3))),
+                
+                ts(c(NA, training.weekly.kdj.d[-length(training.weekly.kdj.d)])))
+```
+
+```{r appendix 2.1-2(2), echo = TRUE, cache=TRUE, eval=TRUE}
+fit.pure.arima <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                             stepwise = FALSE,
+                              approximation = FALSE, max.order = 9)
+```
+
+```{r appendix 2.1-3, echo = FALSE, cache=TRUE, eval=TRUE}
+fit.2 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 2],
+                    max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.2.5 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(2,5)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.2.5.8 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(2,5,8)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.2.5.8.11 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(2,5,8,11)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+```
+
+```{r appendix 2.1-4, echo = FALSE, cache=TRUE, eval=TRUE}
+fit.1 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1],
+                    max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.1.4 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(1,4)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.1.4.7 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(1,4,7)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.1.4.7.10 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(1,4,7,10)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+```
+
+```{r appendix 2.1-4(2), echo = FALSE, cache=TRUE, eval=TRUE}
+fit.13 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(13)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.1.13 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(1,13)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+```
+
+```{r appendix 2.1-5, echo = FALSE, cache=TRUE, eval=TRUE}
+fit.3 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 3],
+                    max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.3.6 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(3,6)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.3.6.9 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(3,6,9)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+fit.3.6.9.12 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), c(3,6,9,12)],
+                     max.order = 9, stepwise = FALSE, approximation = FALSE)
+
+```
+
+```{r appendix 2.1-6, echo = FALSE, cache=FALSE, eval=TRUE}
+
+aicc.name <- c("fit.pure.arima$aicc",
+               "fit.2$aicc",
+               "fit.2.5$aicc",
+               "fit.2.5.8$aicc",
+               "fit.2.5.8.11$aicc",
+               "fit.1$aicc",
+               "fit.1.4$aicc",
+               "fit.1.4.7$aicc",
+               "fit.1.4.7.10$aicc",
+               "fit.3$aicc",
+               "fit.3.6$aicc",
+               "fit.3.6.9$aicc",
+               "fit.3.6.9.12$aicc",
+               "fit.13$aicc",
+               "fit.1.13$aicc")
+
+aicc.value <- c(fit.pure.arima$aicc,
+                fit.2$aicc,
+                fit.2.5$aicc,
+                fit.2.5.8$aicc,
+                fit.2.5.8.11$aicc,
+                fit.1$aicc,
+                fit.1.4$aicc,
+                fit.1.4.7$aicc,
+                fit.1.4.7.10$aicc,
+                fit.3$aicc,
+                fit.3.6$aicc,
+                fit.3.6.9$aicc,
+                fit.3.6.9.12$aicc,
+                fit.13$aicc,
+                fit.1.13$aicc)
+
+aicc.df <- data.frame(name = aicc.name, aicc = aicc.value)
+
+cat("Forecast relationship between weekly KDJ.D and other variables:\n")
+print(aicc.df[order(aicc.df$aicc),])
+
+```
+
+#### 2.2 Comparison of forecast accuracy of weekly KDJ.D by weekly KDJ.K
+
+
+```{r appendix 2.2-3, fig.height=12, fig.width=10, echo = TRUE, cache=TRUE, eval=TRUE}
+result.pure.kdj.d <- CompareObjectAccuracy(arg.object = weekly.kdj.d,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+
+```
+
+
+```{r appendix 2.2-4, fig.height=12, fig.width=10, echo = FALSE, cache=TRUE, eval=TRUE}
+
+reg.lagged.df <- data.frame(cbind(weekly.kdj.k,
+                                  ts(c(NA, weekly.kdj.k[-length(weekly.kdj.k)])),
+                                  ts(c(NA, NA, head(weekly.kdj.k, length(weekly.kdj.k) - 2))),
+                                  ts(c(NA, NA, NA, head(weekly.kdj.k, length(weekly.kdj.k) - 3)))))
+
+result.actual.xreg.kdj.d <-
+        CompareObjectXregAccuracy(arg.object = weekly.kdj.d,
+                                  arg.forecast.period = forecast.period,
+                                  arg.training.set.endpoint = training.set.endpoint,
+                                  arg.comparison.period = comparison.period,
+                                  arg.maxorder = maxorder,
+                                  arg.xreg = reg.lagged.df)
+```
+
+```{r appendix 2.2-5, fig.height=12, fig.width=10, echo = TRUE, cache=TRUE, eval=TRUE}
+
+result.predicted.4layers.xreg.kdj.d <-
+        CompareObjectEstimated4layersXregAccuracy(arg.object = weekly.kdj.d,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.maxorder = maxorder,
+                                                  arg.reg.variable = weekly.kdj.k)
+```
+
+
+```{r appendix 2.2-6, fig.height=12, fig.width=10, echo = FALSE, cache=FALSE, eval=TRUE}
+final.result.kdj.k <- cbind(result.pure.kdj.d,
+                      result.actual.xreg.kdj.d,
+                      result.predicted.4layers.xreg.kdj.d)[, -c(5, 7, 12, 14, 19,21)]
+
+
+colnames(final.result.kdj.k) <- c("seq", "p","d","q", "RMSE",
+                                  "seq2","p2","d2","q2", "RMSE2",
+                                  "seq3","p3","d3","q3", "RMSE3")
+
+
+print(final.result.kdj.k)
+```
+
+```{r appendix 2.2-7, fig.height=12, fig.width=10, echo = FALSE, cache=FALSE, eval=TRUE}
+model.name <- c("Accuracy of pure kdj.d Arima",
+                   "Accuracy of Arima with actual KDJ.K",
+                   "Accuracy of Arima with predicted KDJ.K")
+
+average.rmse <- c(mean(final.result.kdj.k$RMSE),
+                    mean(final.result.kdj.k$RMSE2),
+                    mean(final.result.kdj.k$RMSE3))
+
+sd.rmse <- c(sd(final.result.kdj.k$RMSE),
+                    sd(final.result.kdj.k$RMSE2),
+                    sd(final.result.kdj.k$RMSE3))
+
+pv.up.0.05 <- c(sum(result.pure.kdj.d$p.v >= 0.05),
+                sum(result.actual.xreg.kdj.d$p.v >= 0.05),
+                sum(result.predicted.4layers.xreg.kdj.d$p.v >= 0.05))
+
+
+df.accuracy <- data.frame(model = model.name,
+                          average.rmse = average.rmse,
+                          sd.rmse = sd.rmse,
+                          pv.up.0.05 = pv.up.0.05)
+
+print(df.accuracy)
+
+mean(final.result.kdj.k$RMSE > final.result.kdj.k$RMSE3)
+
+
+```
+
+
+#### 2.3 Comparison of forecast accuracy of weekly KDJ.D by difference of weekly KDJ.K and weekly KDJ.D
+
+```{r appendix 2.3-2, fig.height=12, fig.width=10, echo = FALSE, cache=FALSE, eval=TRUE}
+
+weekly.kdj.kd.diff <- weekly.kdj.k - weekly.kdj.d
+reg.lagged.df <- data.frame(cbind(weekly.kdj.kd.diff,
+                                  ts(c(NA, weekly.kdj.kd.diff[-length(weekly.kdj.kd.diff)])),
+                                  ts(c(NA, NA, head(weekly.kdj.kd.diff, length(weekly.kdj.kd.diff) - 2))),
+                                  ts(c(NA, NA, NA, head(weekly.kdj.kd.diff, length(weekly.kdj.kd.diff) - 3)))))
+```
+
+```{r appendix 2.3-3, fig.height=12, fig.width=10, echo = TRUE, cache=TRUE, eval=TRUE}
+result.actual.xreg.kdj.d <-
+        CompareObjectXregAccuracy(arg.object = weekly.kdj.d,
+                                  arg.forecast.period = forecast.period,
+                                  arg.training.set.endpoint = training.set.endpoint,
+                                  arg.comparison.period = comparison.period,
+                                  arg.maxorder = maxorder,
+                                  arg.xreg = reg.lagged.df)
+
+```
+
+```{r appendix 2.3-4, fig.height=12, fig.width=10, echo = TRUE, cache=TRUE, eval=TRUE}
+result.predicted.4layers.xreg.kdj.d <-
+        CompareObjectEstimated4layersXregAccuracy(arg.object = weekly.kdj.d,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.maxorder = maxorder,
+                                                  arg.reg.variable = weekly.kdj.kd.diff)
+
+```
+
+P value of both models is less than 5% in most situations, which seems that Arima model with estimated weekly kdj.kd.diff is not a good way.
+
+
+
+```{r appendix 2.3-5, fig.height=12, fig.width=10, echo = FALSE, cache=FALSE, eval=TRUE}
+
+final.result.kdj.kd.diff <- cbind(result.pure.kdj.d,
+                                  result.actual.xreg.kdj.d,
+                                  result.predicted.4layers.xreg.kdj.d)[, -c(5, 7, 12, 14, 19,21)]
+
+
+colnames(final.result.kdj.kd.diff) <- c("seq", "p","d","q", "RMSE",
+                                        "seq2","p2","d2","q2", "RMSE2",
+                                        "seq3","p3","d3","q3", "RMSE3")
+
+
+print(final.result.kdj.kd.diff)
+
+model.name <- c("pure kdj.d Arima",
+                   "Arima with actual kdj.kd.diff",
+                   "Arima with predicted kdj.kd.diff")
+
+average.rmse <- c(mean(final.result.kdj.kd.diff$RMSE),
+                  mean(final.result.kdj.kd.diff$RMSE2),
+                  mean(final.result.kdj.kd.diff$RMSE3))
+
+sd.rmse <- c(sd(final.result.kdj.kd.diff$RMSE),
+               sd(final.result.kdj.kd.diff$RMSE2),
+                 sd(final.result.kdj.kd.diff$RMSE3))
+
+
+pv.up.0.05 <- c(sum(result.pure.kdj.d$p.v >= 0.05),
+                sum(result.actual.xreg.kdj.d$p.v >= 0.05),
+                sum(result.predicted.4layers.xreg.kdj.d$p.v >= 0.05))
+
+
+df.accuracy <- data.frame(model = model.name,
+                          average.rmse = average.rmse,
+                          sd.rmse = sd.rmse,
+                          pv.up.0.05 = pv.up.0.05)
+
+print(df.accuracy)
+
+mean(final.result.kdj.kd.diff$RMSE > final.result.kdj.kd.diff$RMSE3) 
+
+```
+
+#### 2.4 Comparison of forecast accuracy of weekly KDJ.D by weekly gold price
+
+
+```{r appendix 2.4-3, fig.height=12, fig.width=10, echo = TRUE, cache=TRUE, eval=TRUE}
+reg.lagged.df <- 
+        data.frame(cbind(weekly.close.price,
+                         ts(c(NA, weekly.close.price[-length(weekly.close.price)])),
+                         ts(c(NA, NA, head(weekly.close.price, length(weekly.close.price) - 2))),
+                         ts(c(NA, NA, NA, head(weekly.close.price, length(weekly.close.price) - 3)))))
+
+
+result.actual.xreg.kdj.d <-
+        CompareObjectXregAccuracy(arg.object = weekly.kdj.d,
+                                  arg.forecast.period = forecast.period,
+                                  arg.training.set.endpoint = training.set.endpoint,
+                                  arg.comparison.period = comparison.period,
+                                  arg.maxorder = maxorder,
+                                  arg.xreg = reg.lagged.df)
+
+```
+
+```{r appendix 2.4-4, fig.height=12, fig.width=10, echo = TRUE, cache=TRUE, eval=TRUE}
+result.predicted.4layers.xreg.kdj.d <-
+        CompareObjectEstimated4layersXregAccuracy(arg.object = weekly.kdj.d,
+                                                  arg.forecast.period = forecast.period,
+                                                  arg.training.set.endpoint = training.set.endpoint,
+                                                  arg.comparison.period = comparison.period,
+                                                  arg.maxorder = maxorder,
+                                                  arg.reg.variable = weekly.close.price)
+
+```
+
+
+```{r appendix 2.4-5, fig.height=12, fig.width=10, echo = FALSE, cache=FALSE, eval=TRUE}
+
+final.result.close.price <- cbind(result.pure.kdj.d,
+                                  result.actual.xreg.kdj.d,
+                                  result.predicted.4layers.xreg.kdj.d)[, -c(5, 7, 12, 14, 19,21)]
+
+
+colnames(final.result.close.price) <- c("seq", "p","d","q", "RMSE",
+                                        "seq2","p2","d2","q2", "RMSE2",
+                                        "seq3","p3","d3","q3", "RMSE3")
+
+
+print(final.result.close.price)
+
+model.name <- c("pure kdj.d Arima",
+                   "Arima with actual close.price",
+                   "Arima with predicted close.price")
+
+average.rmse <- c(mean(final.result.close.price$RMSE),
+                  mean(final.result.close.price$RMSE2),
+                  mean(final.result.close.price$RMSE3))
+
+sd.rmse <- c(sd(final.result.close.price$RMSE),
+               sd(final.result.close.price$RMSE2),
+                 sd(final.result.close.price$RMSE3))
+
+pv.up.0.05 <- c(sum(result.pure.kdj.d$p.v >= 0.05),
+                sum(result.actual.xreg.kdj.d$p.v >= 0.05),
+                sum(result.predicted.4layers.xreg.kdj.d$p.v >= 0.05))
+
+
+df.accuracy <- data.frame(model = model.name,
+                          average.rmse = average.rmse,
+                          sd.rmse = sd.rmse,
+                          pv.up.0.05 = pv.up.0.05)
+
+print(df.accuracy)
+
+mean(final.result.close.price$RMSE > final.result.close.price$RMSE3) 
+
+```
+
+
+#### 2.6 Comparison of pure Arima model of weekly kdj.d with naive model
+
+```{r appendix 2.6, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+
+result.naive.kdj.d <- CompareObjectNaiveAccuracy(arg.object = weekly.kdj.d,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint,
+                                                 arg.comparison.period = comparison.period,
+                                                 arg.maxorder = maxorder)
+
+
+t.test(result.pure.kdj.d$RMSE - result.naive.kdj.d$RMSE)
+
+```
+
+```{r appendix 2.6(2), fig.height=5, fig.width=7, echo = TRUE, cache=FALSE, eval=TRUE}
+
+final.result.kdj.d <- cbind(result.pure.kdj.d,
+                      result.naive.kdj.d)[, -c(5,12)]
+
+colnames(final.result.kdj.d) <- c("seq", "p","d","q", "RMSE", "p.v",
+                                  "seq2", "p2","d2","q2", "RMSE2", "p.v2")
+
+
+print(final.result.kdj.d)
+
+sum(final.result.kdj.d$RMSE > final.result.kdj.d$RMSE2)
+
+
+```
+
+```{r appendix 2.6(3), fig.height=12, fig.width=10, echo = FALSE, cache=FALSE, eval=TRUE}
+model.name <- c("Accuracy of pure kdj.d Arima",
+                   "Accuracy of naive model")
+
+average.rmse <- c(mean(final.result.kdj.d$RMSE),
+                    mean(final.result.kdj.d$RMSE2))
+
+sd.rmse <- c(sd(final.result.kdj.d$RMSE),
+                    sd(final.result.kdj.d$RMSE2))
+
+pv.up.0.05 <- c(sum(final.result.kdj.d$p.v >= 0.05),
+                sum(final.result.kdj.d$p.v2 >= 0.05))
+
+
+df.accuracy <- data.frame(model = model.name,
+                          average.rmse = average.rmse,
+                          sd.rmse = sd.rmse,
+                          pv.up.0.05 = pv.up.0.05)
+
+print(df.accuracy)
+
+mean(final.result.kdj.d$RMSE > final.result.kdj.d$RMSE3)
+
+
+```
+
+
+It can be concluded that hybrid model with Arima model and naive model is not needed for predicting weekly kdj.d.
+
+#### 2.7 Comparison of pure Arima model of weekly kdj.d with Zero Difference model
+
+```{r appendix 2.7, fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+
+
+training.set.endpoint.50 <- length(weekly.kdj.d) - 50 - forecast.period
+
+result.zero.diff.kdj.d.50 <- CompareObjectZeroDiffAccuracy(arg.object = weekly.kdj.d,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint.50,
+                                                 arg.comparison.period = 50,
+                                                 arg.maxorder = maxorder)
+```
+
+
+```{r appendix 2.7(1), fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+result.pure.kdj.d.50 <- CompareObjectAccuracy(arg.object = weekly.kdj.d,
+                                                 arg.forecast.period = forecast.period,
+                                                 arg.training.set.endpoint = training.set.endpoint.50,
+                                                 arg.comparison.period = 50,
+                                                 arg.maxorder = maxorder)
+
+
+```
+
+```{r appendix 2.7(2), fig.height=5, fig.width=7, echo = TRUE, cache=FALSE, eval=TRUE}
+t.test(result.pure.kdj.d.50$RMSE - result.zero.diff.kdj.d.50$RMSE)
+
+
+final.result.kdj.d <- cbind(result.pure.kdj.d.50,
+                      result.zero.diff.kdj.d.50)[, -c(5,12)]
+
+colnames(final.result.kdj.d) <- c("seq", "p","d","q", "RMSE", "p.v",
+                                  "seq2", "p2","d2","q2", "RMSE2", "p.v2")
+
+print(final.result.kdj.d)
+
+sum(final.result.kdj.d$RMSE > final.result.kdj.d$RMSE2)
+
+```
+
+```{r appendix 2.7(3), fig.height=12, fig.width=10, echo = FALSE, cache=FALSE, eval=TRUE}
+model.name <- c("Accuracy of pure kdj.d Arima",
+                   "zero diff Arima ")
+
+average.rmse <- c(mean(final.result.kdj.d$RMSE),
+                    mean(final.result.kdj.d$RMSE2))
+
+sd.rmse <- c(sd(final.result.kdj.d$RMSE),
+                    sd(final.result.kdj.d$RMSE2))
+
+pv.up.0.05 <- c(sum(final.result.kdj.d$p.v >= 0.05),
+                sum(final.result.kdj.d$p.v2 >= 0.05))
+
+
+df.accuracy <- data.frame(model = model.name,
+                          average.rmse = average.rmse,
+                          sd.rmse = sd.rmse,
+                          pv.up.0.05 = pv.up.0.05)
+
+print(df.accuracy)
+
+mean(final.result.kdj.d$RMSE > final.result.kdj.d$RMSE3)
+
+
+```
+
+
+It can be concluded that pure Arima model with max.order set to 5 and d set to 0 is well for predicting weekly kdj.d.
+
+#### 2.8 Comparison of pure Arima model of weekly kdj.d with Determination model by estimated kdj.k
+
+
+```{r appendix 2.8(2), fig.height=5, fig.width=7, echo = TRUE, cache=TRUE, eval=TRUE}
+result.deternimination.kdj.d <- 
+        CompareKDJDEstimatedKDJKXregAccuracy(arg.object = weekly.kdj.d,
+                                             arg.forecast.period = forecast.period,
+                                             arg.training.set.endpoint = training.set.endpoint,
+                                             arg.comparison.period = comparison.period,
+                                             arg.maxorder = maxorder,
+                                             arg.reg.variable = weekly.kdj.k,
+                                             arg.zero.d.flag = TRUE)
+
+```
+
+```{r appendix 2.8(3), fig.height=5, fig.width=7, echo = TRUE, eval=TRUE}
+t.test(result.pure.kdj.d$RMSE - result.deternimination.kdj.d$RMSE)
+
+final.deternimination.kdj.d <- cbind(result.pure.kdj.d,
+                                     result.deternimination.kdj.d)
+
+
+
+final.deternimination.kdj.d <- final.deternimination.kdj.d[, -c(5,7)]
+
+colnames(final.deternimination.kdj.d) <- c("seq", "p","d","q", "RMSE", 
+                                        "seq2","RMSE2")
+
+
+print(final.deternimination.kdj.d)
+
+model.name <- c("pure kdj.d Arima",
+                   "determination model with predicted kdj.k")
+
+average.rmse <- c(mean(final.deternimination.kdj.d$RMSE),
+                  mean(final.deternimination.kdj.d$RMSE2))
+
+sd.rmse <- c(sd(final.deternimination.kdj.d$RMSE),
+               sd(final.deternimination.kdj.d$RMSE2))
+
+
+df.accuracy <- data.frame(model = model.name,
+                          average.rmse = average.rmse,
+                          sd.rmse = sd.rmse)
+
+print(df.accuracy)
+
+mean(final.deternimination.kdj.d$RMSE > final.deternimination.kdj.d$RMSE2) 
+
+```
+
+#### 2.10 Comparison of zero diff Arima model of weekly kdj.d with VAR model
+
+```{r appendix 2.10.1, fig.height=5, fig.width=7, echo = TRUE, cache=FALSE, eval=TRUE}
+weekly.kdj <- cbind(weekly.kdj.k, weekly.kdj.d)
+
+exogen <- cbind(weekly.mlcadd, weekly.mlcdec)
+
+```
+
+```{r appendix 2.10.2, fig.height=5, fig.width=7, echo = TRUE, cache=FALSE, eval=TRUE}
+cor(weekly.kdj.k, weekly.kdj.d)
+
+ndiffs(weekly.kdj.k)
+ndiffs(weekly.kdj.d)
+
+ndiffs(diff(weekly.kdj.k))
+ndiffs(diff(weekly.kdj.d))
+```
+
+
+```{r appendix 2.10.3, fig.height=5, fig.width=7, echo = TRUE}
+
+cot <- ca.jo(weekly.kdj, ecdet = "const", type = "trace", K = 3, spec = "transitory")
+summary(cot)
+
+col <- ca.jo(weekly.kdj, ecdet = "const", type = "eigen", K = 3, spec = "transitory")
+summary(col)
+
+```
+
+
+```{r appendix 2.10.4, fig.height=5, fig.width=7, echo = TRUE, cache=FALSE, eval=TRUE}
+source("CompareVARAccuracy.r")
+
+result.var.kdj.d.50 <- CompareVARAccuracy(arg.object = weekly.kdj,
+                                       arg.forecast.period = forecast.period,
+                                       arg.training.set.endpoint = training.set.endpoint.50,
+                                       arg.comparison.period = 50,
+                                       arg.comparison.colname = "weekly.kdj.d")
+```
+
+```{r appendix 2.10.4.2, fig.height=5, fig.width=7, echo = TRUE, cache=FALSE, eval=TRUE}
+source("CompareVARwithExogen.r")
+
+result.var.exogen.50 <- CompareVARwithExogen(arg.object = weekly.kdj,
+                                       arg.forecast.period = forecast.period,
+                                       arg.training.set.endpoint = training.set.endpoint.50,
+                                       arg.comparison.period = 50,
+                                       arg.comparison.colname = "weekly.kdj.d",
+                                       arg.exogen = exogen)
+```
+
+
+```{r appendix 2.10.5, fig.height=5, fig.width=7, echo = TRUE, cache=FALSE, eval=TRUE}
+t.test(result.zero.diff.kdj.d.50$RMSE - result.var.kdj.d.50$RMSE)
+
+final.result <- cbind(result.pure.kdj.d.50,
+                      result.var.kdj.d.50,
+                      result.var.exogen.50)[,-c(5,11,17,19)]
+
+
+colnames(final.result) <- c("seq", "p","d","q", "RMSE","p.v", 
+                            "seq2","RMSE2", "p.v2", "root","porder",
+                            "seq3","RMSE3", "p.v3", "root3")
+
+print(final.result)
+
+model.name <- c("pure kdj.d Arima",
+                   "VAR",
+                   "VAR with exogen")
+
+
+average.rmse <- c(mean(final.result$RMSE),
+                  mean(final.result$RMSE2),
+                  mean(final.result$RMSE3))
+
+sd.rmse <- c(sd(final.result$RMSE),
+                  sd(final.result$RMSE2),
+             sd(final.result$RMSE3))
+
+pv.up.0.05 <- c(sum(final.result$p.v >= 0.05),
+                sum(final.result$p.v2 >= 0.05),
+                sum(final.result$p.v3 >= 0.05))
+
+df.accuracy <- data.frame(model = model.name,
+                          average.rmse = average.rmse,
+                          sd.rmse = sd.rmse,
+                          pv.up.0.05 = pv.up.0.05)
+
+print(df.accuracy)
+
+mean(final.result$RMSE > final.result$RMSE2) 
+mean(final.result$RMSE > final.result$RMSE3) 
+```
+
+### 2.11 Forecast relationship between weekly KDJ.D and mlclvtz
+
+#### 2.11.1 Model Selection
+
+```{r appendix 2.11-1, echo = TRUE, cache=TRUE, eval=TRUE}
+
+reg.lagged.df <- cbind(training.weekly.mlcadd,
+                       training.weekly.mlcdec,
+
+                c(NA, training.weekly.mlcadd[-length(training.weekly.mlcadd)]),
+                c(NA, training.weekly.mlcdec[-length(training.weekly.mlcdec)]),
+
+                c(NA, NA, head(training.weekly.mlcadd, length(training.weekly.mlcadd) - 2)),
+                c(NA, NA, head(training.weekly.mlcdec, length(training.weekly.mlcdec) - 2)),
+
+                c(NA, NA, NA, head(training.weekly.mlcadd, length(training.weekly.mlcadd) - 3)),
+                c(NA, NA, NA, head(training.weekly.mlcdec, length(training.weekly.mlcdec) - 3)))
+```
+
+```{r appendix 2.11-2, echo = TRUE, cache=TRUE, eval=TRUE}
+fit.pure.arima <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)])
+fit.zerodiff.arima <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)], d = 0)
+```
+
+```{r appendix 2.11-3, echo = TRUE, cache=TRUE, eval=TRUE}
+fit.1..2 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:2])
+
+fit.1..4 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:4])
+
+fit.1..6 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:6])
+
+fit.1..8 <- auto.arima(training.weekly.kdj.d[4:length(training.weekly.kdj.d)],
+                     xreg = reg.lagged.df[4:nrow(reg.lagged.df), 1:8])
+```
+
+
+
+```{r appendix 2.11-4, echo = TRUE, cache=FALSE, eval=TRUE}
+
+aicc.name <- c("fit.pure.arima$aicc",
+               "fit.zerodiff.arima$aicc",
+               "fit.1..2$aicc",
+               "fit.1..4$aicc",
+               "fit.1..6$aicc",
+               "fit.1..8$aicc")
+
+aicc.value <- c(fit.pure.arima$aicc,
+                fit.zerodiff.arima$aicc,
+                fit.1..2$aicc,
+                fit.1..4$aicc,
+                fit.1..6$aicc,
+                fit.1..8$aicc)
+
+aicc.df <- data.frame(name = aicc.name, aicc = aicc.value)
+
+cat("Forecast relationship between weekly KDJ.D and mlclvtz:\n")
+print(aicc.df[order(aicc.df$aicc),])
+
+```
+
+#### 2.11.2 Model Comparison between zero diff Arima and  Arima with 1-level mlclvtz 
+
+```{r appendix 2.11.5, fig.height=12, fig.width=10, echo = TRUE, cache=TRUE, eval=TRUE}
+
+reg.lagged.df <- cbind(weekly.mlcadd,weekly.mlcdec)
+
+result.actual.xreg.kdj.d.50 <-
+        CompareObjectXregAccuracy(arg.object = weekly.kdj.d,
+                                  arg.forecast.period = forecast.period,
+                                  arg.training.set.endpoint = training.set.endpoint.50,
+                                  arg.comparison.period = 50,
+                                  arg.maxorder = maxorder,
+                                  arg.xreg = reg.lagged.df)
+
+```
+
+```{r appendix 2.11.6, fig.height=12, fig.width=10, echo = TRUE, cache=TRUE, eval=TRUE}
+
+result.actual.xreg.zero.diff.50 <-
+        CompareObjectXregAccuracy(arg.d = 0,
+                                  arg.object = weekly.kdj.d,
+                                  arg.forecast.period = forecast.period,
+                                  arg.training.set.endpoint = training.set.endpoint.50,
+                                  arg.comparison.period = 50,
+                                  arg.maxorder = maxorder,
+                                  arg.xreg = reg.lagged.df)
+
+```
+
+```{r appendix 2.11.7, fig.height=12, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+final.result.kdj.k <- cbind(result.zero.diff.kdj.d.50,
+                      result.actual.xreg.kdj.d.50,
+                      result.actual.xreg.zero.diff.50)
+
+final.result.kdj.k <- final.result.kdj.k[, -c(5, 12, 19)]
+
+colnames(final.result.kdj.k) <- c("seq", "p","d","q", "RMSE", "p.v",
+                            "seq2", "p2","d2","q2", "RMSE2", "p.v2",
+                            "seq3", "p3","d3","q3", "RMSE3", "p.v3")
+
+
+print(final.result.kdj.k)
+```
+
+```{r appendix 2.11.8, fig.height=12, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+model.name <- c("zero diff Arima",
+                   "Arima with mlclvtz",
+                   "zero diff Arima with  mlclvtz")
+
+average.rmse <- c(mean(final.result.kdj.k$RMSE),
+                    mean(final.result.kdj.k$RMSE2),
+                    mean(final.result.kdj.k$RMSE3))
+
+sd.rmse <- c(sd(final.result.kdj.k$RMSE),
+               sd(final.result.kdj.k$RMSE2),
+                 sd(final.result.kdj.k$RMSE3))
+
+pv.up.0.05 <- c(sum(final.result.kdj.k$p.v >= 0.05),
+                sum(final.result.kdj.k$p.v2 >= 0.05),
+                sum(final.result.kdj.k$p.v3 >= 0.05))
+
+
+df.accuracy <- data.frame(model = model.name,
+                          average.rmse = average.rmse,
+                          sd.rmse = sd.rmse,
+                          pv.up.0.05 = pv.up.0.05)
+
+print(df.accuracy)
+
+mean(final.result.kdj.k$RMSE > final.result.kdj.k$RMSE3)
+
+t.test(final.result.kdj.k$RMSE - final.result.kdj.k$RMSE3)
+
+```
+
+
+#### 2.11.3 Model Comparison between zero diff Arima and  Arima with 2-level mlclvtz 
+
+```{r appendix 2.11.3.1, fig.height=12, fig.width=10, echo = TRUE, cache=TRUE, eval=TRUE}
+
+reg.lagged.df <- cbind(weekly.mlcadd,
+                       weekly.mlcdec,
+
+                       c(NA, weekly.mlcadd[-length(weekly.mlcadd)]),
+                       c(NA, weekly.mlcdec[-length(weekly.mlcdec)]))
+
+
+```
+
+```{r appendix 2.11.3.2, fig.height=12, fig.width=10, echo = TRUE, cache=TRUE, eval=TRUE}
+
+result.actual.xreg.zero.diff.50 <-
+        CompareObjectXregAccuracy(arg.d = 0,
+                                  arg.object = weekly.kdj.d,
+                                  arg.forecast.period = forecast.period,
+                                  arg.training.set.endpoint = training.set.endpoint.50,
+                                  arg.comparison.period = 50,
+                                  arg.maxorder = maxorder,
+                                  arg.xreg = reg.lagged.df)
+
+```
+
+```{r appendix 2.11.3.3, fig.height=12, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+final.result.kdj.k <- cbind(result.zero.diff.kdj.d.50,
+                      result.actual.xreg.zero.diff.50)
+
+final.result.kdj.k <- final.result.kdj.k[, -c(5, 12)]
+
+colnames(final.result.kdj.k) <- c("seq", "p","d","q", "RMSE", "p.v",
+                            "seq2", "p2","d2","q2", "RMSE2", "p.v2")
+
+
+print(final.result.kdj.k)
+```
+
+```{r appendix 2.11.3.4, fig.height=12, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+model.name <- c("zero diff Arima",
+                   "zero diff Arima with  2 levels mlclvtz")
+
+average.rmse <- c(mean(final.result.kdj.k$RMSE),
+                    mean(final.result.kdj.k$RMSE2))
+
+sd.rmse <- c(sd(final.result.kdj.k$RMSE),
+               sd(final.result.kdj.k$RMSE2))
+
+pv.up.0.05 <- c(sum(final.result.kdj.k$p.v >= 0.05),
+                sum(final.result.kdj.k$p.v2 >= 0.05))
+
+
+df.accuracy <- data.frame(model = model.name,
+                          average.rmse = average.rmse,
+                          sd.rmse = sd.rmse,
+                          pv.up.0.05 = pv.up.0.05)
+
+print(df.accuracy)
+
+mean(final.result.kdj.k$RMSE > final.result.kdj.k$RMSE2)
+
+t.test(final.result.kdj.k$RMSE - final.result.kdj.k$RMSE2)
+
+```
+
+## Check if the last seq number is same for every test? 
+

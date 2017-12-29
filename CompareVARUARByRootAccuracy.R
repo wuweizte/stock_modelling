@@ -1,8 +1,9 @@
-CompareVARUARByRootAccuracy <- function(arg.object, 
-                               arg.forecast.period,
-                               arg.training.set.endpoint, 
-                               arg.comparison.period,
-                               arg.comparison.colname){
+CompareVARUARByRootAccuracy <- function(arg.d = NA,
+                                        arg.object, 
+                                        arg.forecast.period,
+                                        arg.training.set.endpoint, 
+                                        arg.comparison.period,
+                                        arg.comparison.colname){
         time.attribute <- tsp(arg.object)
         
         training.set.object.1 <- 
@@ -17,23 +18,16 @@ CompareVARUARByRootAccuracy <- function(arg.object,
 
         var.1 <- VAR(training.set.object.1, p=1, type="const", lag.max = 5, ic = "SC" )
         flag.1 <- 0
-        if(max(abs(roots(var.1))) < 1) {
+        if(max(Mod(roots(var.1))) < 1) {
                 fcst.1 <- predict(var.1, n.ahead = length(test.set.object.1[,arg.comparison.colname]))
                 fcst.1 <- fcst.1$fcst[[arg.comparison.colname]][,"fcst"]
                 flag.1 <- 1
                 
         } else {
-                # var.1 <- VAR(diff(training.set.object.1), p=1, 
-                #              type="const", lag.max = 5, ic = "SC" )
-                # fcst.1 <- predict(var.1,
-                #                   n.ahead = length(test.set.object.1[,arg.comparison.colname]))
-                # fcst.1 <- as.numeric(tail(training.set.object.1[,arg.comparison.colname],1)) +
-                #         cumsum(fcst.1$fcst[[arg.comparison.colname]][,"fcst"])
-                
-                fit.arima.object.1 <- auto.arima(training.set.object.1[,arg.comparison.colname],
-                                                 stepwise = FALSE,
-                                                 seasonal = FALSE,
-                                                 approximation = FALSE)                
+
+                fit.arima.object.1 <- 
+                        auto.arima(training.set.object.1[,arg.comparison.colname],
+                                 d = arg.d)                
                 
                 
                 fcst.1 <- predict(fit.arima.object.1, 
@@ -54,7 +48,7 @@ CompareVARUARByRootAccuracy <- function(arg.object,
                                                      as.numeric(test.set.object.1[,arg.comparison.colname]))^2)), digits = 1),
                             round(pvalue.1, digits = 2),
                             round(sigma.1, digits = 2),
-                          max(abs(roots(var.1))),
+                          max(Mod(roots(var.1))),
                           var.1$p,
                           flag.1),
                           dim = c(7,1)))
@@ -75,23 +69,16 @@ CompareVARUARByRootAccuracy <- function(arg.object,
                 
 
                 flag.2 <- 0
-                if(max(abs(roots(var.2))) < 1) {
+                if(max(Mod(roots(var.2))) < 1) {
                         fcst.2 <- predict(var.2, n.ahead = length(test.set.object.2[,arg.comparison.colname]))
                         fcst.2 <- fcst.2$fcst[[arg.comparison.colname]][,"fcst"]
                         flag.2 <- 1
                         
                 } else{
-                        # var.2 <- VAR(diff(training.set.object.2), p=1, 
-                        #              type="const", lag.max = 5, ic = "SC" )
-                        # fcst.2 <- predict(var.2,
-                        #                   n.ahead = length(test.set.object.2[,arg.comparison.colname]))
-                        # fcst.2 <- as.numeric(tail(training.set.object.2[,arg.comparison.colname],1)) +
-                        #         cumsum(fcst.2$fcst[[arg.comparison.colname]][,"fcst"])
-                        
-                        fit.arima.object.2 <- auto.arima(training.set.object.2[,arg.comparison.colname],
-                                                         stepwise = FALSE,
-                                                         seasonal = FALSE,
-                                                         approximation = FALSE)                
+
+                        fit.arima.object.2 <- 
+                                auto.arima(training.set.object.2[,arg.comparison.colname],
+                                d = arg.d)                
                         
                         
                         fcst.2 <- predict(fit.arima.object.2, 
@@ -113,7 +100,7 @@ CompareVARUARByRootAccuracy <- function(arg.object,
                                           digits = 1),
                                     round(pvalue.2, digits = 2),
                                     round(sigma.2, digits = 2),
-                                   max(abs(roots(var.2))),
+                                   max(Mod(roots(var.2))),
                                    var.2$p,
                                    flag.2),
                                   dim = c(7,1)))

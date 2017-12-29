@@ -8,6 +8,9 @@ DrawWeeklyKDJDForecastPlot <- function(arg.close.price,
                                         arg.date){
         
  
+        source("GetWeeklyKDJDForecast.R")
+        source("GetWeeklyKDJKForecast.R")
+        
         if(arg.regression.offset > length(arg.kdj.d) - 1){
                 print(paste0("arg.regression.offset should be less than length(arg.kdj.d), which is ",
                              length(arg.kdj.d)))
@@ -16,49 +19,18 @@ DrawWeeklyKDJDForecastPlot <- function(arg.close.price,
         
         kdj.d.data <- window(arg.kdj.d, start = length(arg.kdj.d) - arg.regression.offset)
         kdj.k.data <- window(arg.kdj.k, start = length(arg.kdj.k) - arg.regression.offset)
-        # date.data <- window(arg.date, start = length(arg.date) - arg.regression.offset)
+
         
-        fit.arima.kdj.d <- auto.arima(kdj.d.data,
-                                      max.order = 5,
-                                      d = 0,
-                                      stepwise = FALSE,
-                                      approximation = FALSE)
-        
-        pvalue.d <- Box.test(residuals(fit.arima.kdj.d), lag=10, 
-                           fitdf=sum(fit.arima.kdj.d$arma[c(1,2)]),
-                           type = "Lj")$p.value
+        estimated.kdj.d <- GetWeeklyKDJDForecast(arg.kdj.k = kdj.k.data , 
+                                                 arg.kdj.d = kdj.d.data, 
+                                                 arg.forecast.period)
         
         
-        if(pvalue.d < 0.05){
-                fit.arima.kdj.d <- auto.arima(kdj.d.data,
-                                              max.order = 9,
-                                              d = 0,
-                                              stepwise = FALSE,
-                                              approximation = FALSE)
-        }
+        estimated.kdj.k <- GetWeeklyKDJKForecast(arg.kdj.k = kdj.k.data , 
+                                                 arg.kdj.d = kdj.d.data, 
+                                                 arg.forecast.period)
         
-        estimated.kdj.d <- forecast(fit.arima.kdj.d,  h = arg.forecast.period)
-        
-        fit.arima.kdj.k <- auto.arima(kdj.k.data,
-                                      max.order = 5,
-                                      d = 0,
-                                      stepwise = FALSE,
-                                      approximation = FALSE)
-        
-        pvalue.k <- Box.test(residuals(fit.arima.kdj.k), lag=10, 
-                             fitdf=sum(fit.arima.kdj.k$arma[c(1,2)]), 
-                             type = "Lj")$p.value
-        
-        if(pvalue.k < 0.05){
-                fit.arima.kdj.k <- auto.arima(kdj.k.data,
-                                              max.order = 9,
-                                              d = 0,
-                                              stepwise = FALSE,
-                                              approximation = FALSE)
-        }
-        
-        estimated.kdj.k <- forecast(fit.arima.kdj.k,  h = arg.forecast.period)
-        
+        # browser()
         plot(estimated.kdj.d,
              PI = FALSE, 
              axes = FALSE,
@@ -73,20 +45,28 @@ DrawWeeklyKDJDForecastPlot <- function(arg.close.price,
         
         lines(estimated.kdj.d$mean, type = "o", col = "deepskyblue")
         
-        lines(estimated.kdj.k$mean, type = "l", col = "red",lwd = 2)
         lines(kdj.k.data, type = "l", col = "darkorange")
-
-        kdj.d.arima.name <- paste0("Arima(",
-                                   fit.arima.kdj.d$arma[1],",",
-                                   fit.arima.kdj.d$arma[6],",",
-                                   fit.arima.kdj.d$arma[2],
-                                   ")")
         
-        kdj.k.arima.name <- paste0("Arima(",
-                                   fit.arima.kdj.k$arma[1], ",",
-                                   fit.arima.kdj.k$arma[6], ",",
-                                   fit.arima.kdj.k$arma[2],
-                                   ")")
+        kdj.k.x.axis <- length(arg.kdj.k) + 1:arg.forecast.period
+        
+        lines(x = kdj.k.x.axis, 
+              y = estimated.kdj.k, 
+              type = "l", 
+              col = "red",
+              lwd = 2)
+        
+
+        # kdj.d.arima.name <- paste0("Arima(",
+        #                            fit.arima.kdj.d$arma[1],",",
+        #                            fit.arima.kdj.d$arma[6],",",
+        #                            fit.arima.kdj.d$arma[2],
+        #                            ")")
+        
+        # kdj.k.arima.name <- paste0("Arima(",
+        #                            fit.arima.kdj.k$arma[1], ",",
+        #                            fit.arima.kdj.k$arma[6], ",",
+        #                            fit.arima.kdj.k$arma[2],
+        #                            ")")
 
         axis(1,
              at = seq(length(arg.kdj.d) - arg.xlim.offset,
@@ -123,9 +103,9 @@ DrawWeeklyKDJDForecastPlot <- function(arg.close.price,
                lwd = 2,
                ncol = 2,
                legend = c("Actual Weekly KDJ.D",
-                          paste0("Forecast Weekly KDJ.D--",kdj.d.arima.name),
+                          paste0("Forecast Weekly KDJ.D"),
                           "Actual Weekly KDJ.K",
-                          paste0("Forecast Weekly KDJ.K--",kdj.k.arima.name)),
+                          paste0("Forecast Weekly KDJ.K")),
                bty = "n")        
         
         box()
