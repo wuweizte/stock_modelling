@@ -6,8 +6,8 @@ DrawMonthlyKDJDForecastPlot <- function(arg.close.price,
                                         arg.xlim.offset,
                                         arg.date){
         
-        source("GetMonthlyKDJDForecast.R")
-        source("GetMonthlyKDJKForecast.R")
+        source("D:\\MyR\\stock\\GetMonthlyKDJDForecast.R")
+        source("D:\\MyR\\stock\\GetMonthlyKDJKForecast.R")
         
         
         estimated.kdj.d <- GetMonthlyKDJDForecast(arg.kdj.k, 

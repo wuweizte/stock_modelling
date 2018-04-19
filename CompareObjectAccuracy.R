@@ -15,7 +15,7 @@ CompareObjectAccuracy <- function(arg.object,
                                     end = time.attribute[1] + (arg.training.set.endpoint + arg.forecast.period - 1)/ time.attribute[3])
         
         
-        # browser()
+        browser()
         fit.arima.object.1 <- auto.arima(training.set.object.1,
                                          max.order = arg.maxorder,
                                          stepwise = FALSE,

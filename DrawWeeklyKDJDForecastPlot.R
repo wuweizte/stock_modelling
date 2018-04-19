@@ -8,8 +8,8 @@ DrawWeeklyKDJDForecastPlot <- function(arg.close.price,
                                         arg.date){
         
  
-        source("GetWeeklyKDJDForecast.R")
-        source("GetWeeklyKDJKForecast.R")
+        source("d://MyR//stock//GetWeeklyKDJDForecast.R")
+        source("d://MyR//stock//GetWeeklyKDJKForecast.R")
         
         if(arg.regression.offset > length(arg.kdj.d) - 1){
                 print(paste0("arg.regression.offset should be less than length(arg.kdj.d), which is ",

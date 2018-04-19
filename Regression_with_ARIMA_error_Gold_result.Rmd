@@ -9,24 +9,24 @@ output: html_document
 
 
 ```{r library, echo = FALSE}
-rm(list = ls())
-
-suppressMessages(library(forecast))
-suppressMessages(library(grid))
-suppressMessages(library(gridExtra))
-suppressMessages(library(ggplot2))
-suppressMessages(library(FinTS))
-suppressMessages(library(rugarch))
-suppressMessages(library(fNonlinear))
-suppressMessages(library(vars))
+# rm(list = ls())
+# 
+# suppressMessages(library(forecast))
+# suppressMessages(library(grid))
+# suppressMessages(library(gridExtra))
+# suppressMessages(library(ggplot2))
+# suppressMessages(library(FinTS))
+# suppressMessages(library(rugarch))
+# suppressMessages(library(fNonlinear))
+# suppressMessages(library(vars))
 ```
 
 ```{r source files, echo = FALSE}
-setwd("d://MyR//stock//")
+# setwd("d://MyR//stock//")
 
-source("DrawMonthlyKDJDForecastPlot.R")
-source("DrawWeeklyKDJDForecastPlot.R")
-source("ReturnArimaRollingForecast.r")
+# source("d://MyR//stock//DrawMonthlyKDJDForecastPlot.R")
+# source("d://MyR//stock//DrawWeeklyKDJDForecastPlot.R")
+# source("d://MyR//stock//ReturnArimaRollingForecast.r")
 ```
 
 
@@ -35,27 +35,27 @@ source("ReturnArimaRollingForecast.r")
 ```{r main 1.1, echo = FALSE}
 
 
-monthly.original.data <- read.csv("goldmonthly.csv")
-
-monthly.close.price <- monthly.original.data[,5]
-
-## The last month has not passed completely. So it is cancelled.
-monthly.close.price <- monthly.close.price[-length(monthly.close.price)]
-
-## start time: 1990.01.01
-monthly.close.price <- ts(monthly.close.price, start = c(1990, 1), frequency = 12)
-monthly.compound.return <- diff(log(monthly.close.price)) * 100
-
-## when the last kdj is added manually and not real, it is removed
-monthly.kdj.k <- monthly.original.data[,7]
-monthly.kdj.d <- monthly.original.data[,8]
-if(length(unique(tail(monthly.kdj.k,2))) == 1){
-        monthly.kdj.k <- monthly.kdj.k[-length(monthly.kdj.k)]
-        monthly.kdj.d <- monthly.kdj.d[-length(monthly.kdj.d)]
-}
-
-monthly.kdj.k <- ts(monthly.kdj.k, start = c(1990, 1), frequency = 12)
-monthly.kdj.d <- ts(monthly.kdj.d, start = c(1990, 1), frequency = 12)
+# monthly.original.data <- read.csv("d://MyR//stock//goldmonthly.csv")
+# 
+# monthly.close.price <- monthly.original.data[,5]
+# 
+# ## The last month has not passed completely. So it is cancelled.
+# monthly.close.price <- monthly.close.price[-length(monthly.close.price)]
+# 
+# ## start time: 1990.01.01
+# monthly.close.price <- ts(monthly.close.price, start = c(1990, 1), frequency = 12)
+# monthly.compound.return <- diff(log(monthly.close.price)) * 100
+# 
+# ## when the last kdj is added manually and not real, it is removed
+# monthly.kdj.k <- monthly.original.data[,7]
+# monthly.kdj.d <- monthly.original.data[,8]
+# if(length(unique(tail(monthly.kdj.k,2))) == 1){
+#         monthly.kdj.k <- monthly.kdj.k[-length(monthly.kdj.k)]
+#         monthly.kdj.d <- monthly.kdj.d[-length(monthly.kdj.d)]
+# }
+# 
+# monthly.kdj.k <- ts(monthly.kdj.k, start = c(1990, 1), frequency = 12)
+# monthly.kdj.d <- ts(monthly.kdj.d, start = c(1990, 1), frequency = 12)
 ```
 
 #### 1.1 Forecast result of monthly kdj k/d 
@@ -73,7 +73,7 @@ DrawMonthlyKDJDForecastPlot(monthly.close.price,
 
 #### 1.2 Monthly Price Forecast 
 
-```{r main 1.3, fig.height=6, fig.width=10, echo = FALSE, cache=TRUE}
+```{r main 1.3, fig.height=6, fig.width=10, echo = FALSE, cache=TRUE,eval=FALSE}
 
 ## It is found that there is no significant difference between setting stepwise and approximation to true and false
 ## For the sake of simplicity, use default setting values (set to true)
@@ -87,7 +87,7 @@ fc.arima.monthly.return <- forecast(fit.arima.monthly.return, h = 1,
 ```
 
 
-```{r main 1.6, echo=FALSE}
+```{r main 1.6, echo=FALSE,eval=FALSE}
 ### 2 sigma upper level
 monthly.price.2.upper.level <- as.numeric(tail(monthly.close.price,1)) * exp((fc.arima.monthly.return$mean  + sqrt(fc.arima.monthly.return$model$sigma2) * 2) / 100)
 
@@ -119,7 +119,7 @@ possibility.ascend.next.month <- pnorm(0, mean = fc.arima.monthly.return$mean,
 
 
 
-```{r main 1.7,  fig.height=3, fig.width=4, echo=FALSE}
+```{r main 1.7,  fig.height=3, fig.width=4, echo=FALSE,eval=FALSE}
 d <- data.frame(monthly.price.2.upper.level = round(monthly.price.2.upper.level,digits = 2),
                 monthly.price.1.upper.level = round(monthly.price.1.upper.level,digits = 2),
                 monthly.price.last.month = round(monthly.price.last.month,digits = 2),
@@ -142,7 +142,7 @@ grid.draw(g)
 #### 1.3 Predictation of Recent months 
 
 
-```{r appendix 1.3.2, fig.height=2, fig.width=9, echo = FALSE, cache=FALSE, eval=TRUE}
+```{r appendix 1.3.2, fig.height=2, fig.width=9, echo = FALSE, cache=FALSE,eval=FALSE}
 
 recent.month.count <- 5
 
@@ -166,7 +166,10 @@ d <- data.frame(recent.monthly.return = paste0(recent.monthly.return,"%"),
 start.year <- trunc(tsp(recent.monthly.return)[1])
 start.month <- round((tsp(recent.monthly.return)[1] - start.year) / 0.0833333) + 1
 
-row.names(d) <- paste0(start.year,"-",seq(from = start.month, length=recent.month.count))
+
+# row.names(d) <- paste0(start.year,"-",seq(from = start.month, length=recent.month.count))
+
+row.names(d) <- substr(seq(as.Date(paste0(start.year,"-",start.month,"-1")),by = "months", length=recent.month.count),1,7)
 
 g <- tableGrob(d)
 grid.newpage()
@@ -175,9 +178,9 @@ grid.draw(g)
 
 ### 2. Forecast result of Weekly kdj k/d and Weekly compound return
 
-```{r main 2.1, echo = FALSE}
+```{r main 2.1, echo = FALSE,eval=FALSE}
 
-weekly.original.data <- read.csv("goldweekly.csv")
+weekly.original.data <- read.csv("d://MyR//stock//goldweekly.csv")
 
 weekly.close.price <- as.ts(weekly.original.data[,5])
 weekly.kdj.k <- as.ts(weekly.original.data[,7])
@@ -194,7 +197,7 @@ names(weekly.compound.return) <- weekly.original.data$Time[-1]
 
 #### 2.1 Forecast result of weekly kdj k/d 
 
-```{r main 2.2, fig.height=6, fig.width=10, echo = FALSE, cache=TRUE}
+```{r main 2.2, fig.height=6, fig.width=10, echo = FALSE, cache=TRUE,eval=FALSE}
 
 DrawWeeklyKDJDForecastPlot(weekly.close.price,
                            weekly.kdj.k,
@@ -209,7 +212,7 @@ DrawWeeklyKDJDForecastPlot(weekly.close.price,
         
 #### 2.2 Weekly Price Forecast 
 
-```{r main 2.3, fig.height=6, fig.width=10, echo = TRUE, cache=TRUE}
+```{r main 2.3, fig.height=6, fig.width=10, echo = TRUE, cache=TRUE,eval=FALSE}
 fit.arima.object <- auto.arima(weekly.compound.return[1:469], seasonal = FALSE) 
 
 myspec.aparch.std.52.ver1 <- ugarchspec(variance.model = list(model = "apARCH",garchOrder = c(5,2)),
@@ -227,7 +230,7 @@ suppressWarnings(fc.aparch.std.52.ver1 <- ugarchforecast(myspec.aparch.std.52.ve
 
 ```
 
-```{r main 2.3(2), fig.height=6, fig.width=10, echo = TRUE, cache=TRUE}
+```{r main 2.3(2), fig.height=6, fig.width=10, echo = TRUE, cache=TRUE,eval=FALSE}
 ## if the length is larger than 479, it is needed to select garch model again
 
 ## n.old in 5.1 section should also be modified in the above section
@@ -238,7 +241,7 @@ length(weekly.compound.return)
 ```
 
 
-```{r main 2.4, echo=FALSE}
+```{r main 2.4, echo=FALSE,eval=FALSE}
 ### 2 sigma upper level
 weekly.price.2.upper.level <- as.numeric(tail(weekly.close.price,1) * exp((fc.aparch.std.52.ver1@forecast$seriesFor  + 2 * fc.aparch.std.52.ver1@forecast$sigmaFor) / 100))
 
@@ -270,7 +273,7 @@ possibility.ascend.next.week <- pnorm(0, mean = fc.aparch.std.52.ver1@forecast$s
 
 
 
-```{r main 2.5,  fig.height=3, fig.width=4, echo=FALSE}
+```{r main 2.5,  fig.height=3, fig.width=4, echo=FALSE,eval=FALSE}
 d <- data.frame(weekly.price.2.upper.level = round(weekly.price.2.upper.level,digits = 2),
                 weekly.price.1.upper.level = round(weekly.price.1.upper.level,digits = 2),
                 weekly.price.last.week = round(weekly.price.last.week,digits = 2),
@@ -292,7 +295,7 @@ grid.draw(g)
 ```
 
 #### 2.3 Data of Recent weeks 
-```{r main 2.3.1,  fig.height=3, fig.width=4, echo=FALSE}
+```{r main 2.3.1,  fig.height=3, fig.width=4, echo=FALSE,eval=FALSE}
 ## parameters in myspec.aparch.std.52.ver1 have been set fixed in the 2.3 section
 ## n.old should be same as the above setting for myfit.aparch.std.52.ver1
 
@@ -300,7 +303,7 @@ myfilter.aparch.std.52.ver1 <- ugarchfilter(myspec.aparch.std.52.ver1, weekly.co
 ```
 
 
-```{r appendix 2.3.2, fig.height=2, fig.width=9, echo = FALSE, cache=FALSE, eval=TRUE}
+```{r appendix 2.3.2, fig.height=2, fig.width=9, echo = FALSE, cache=FALSE,eval=FALSE}
 recent.week.count <- 5
 
 recent.weekly.return <- round(tail(weekly.compound.return, recent.week.count),digits = 2)
@@ -335,7 +338,7 @@ grid.draw(g)
 
 
 
-```{r 3.0.1, cache=FALSE, eval=TRUE}
+```{r 3.0.1, cache=FALSE, eval=TRUE,eval=FALSE}
 
 fit.arima.monthly.kdj.d <- auto.arima(monthly.kdj.d,
                               max.order = 5,
@@ -352,7 +355,7 @@ fit.arima.monthly.kdj.k <- auto.arima(monthly.kdj.k,
 
 ```
 
-```{r 3.0.2, cache=FALSE, eval=TRUE}
+```{r 3.0.2, cache=FALSE, eval=TRUE,eval=FALSE}
 
 monthly.kdj <- cbind(monthly.kdj.k, monthly.kdj.d)
 
@@ -369,7 +372,7 @@ var$p
 ### 3.1 White Noise Test
 
 
-```{r 3.1.1, cache=FALSE, eval=TRUE}
+```{r 3.1.1, cache=FALSE, eval=TRUE,eval=FALSE}
 
 Box.test(residuals(fit.arima.monthly.kdj.d), lag=10, fitdf=sum(fit.arima.monthly.kdj.d$arma[c(1,2)]), type = "Lj")
 
@@ -379,7 +382,7 @@ Box.test(residuals(fit.arima.monthly.return), lag=10, fitdf=sum(fit.arima.monthl
 
 ```
 
-```{r 3.1.2, cache=FALSE, eval=TRUE}
+```{r 3.1.2, cache=FALSE,eval=FALSE}
 
 serial.test(var, lags.pt=10, type="PT.asymptotic")
 ```
@@ -387,7 +390,7 @@ serial.test(var, lags.pt=10, type="PT.asymptotic")
 
 ### 3.2  Relationship Between Residuals And Time
 
-```{r main 3.2.1, fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
+```{r main 3.2.1, fig.height=6, fig.width=10, cache=FALSE,eval=FALSE}
 plot(residuals(fit.arima.monthly.kdj.d), axes = TRUE, main = "Arima( Monthly KDJ.D )")
 abline(h = 0, col = "red")
 
@@ -398,7 +401,7 @@ plot(residuals(fit.arima.monthly.return), axes = TRUE, main = "Arima( Monthly Re
 abline(h = 0, col = "red")
 ```
 
-```{r main 3.2.2, fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
+```{r main 3.2.2, fig.height=6, fig.width=10, cache=FALSE,eval=FALSE}
 plot(residuals(var)[,"monthly.kdj.k"], main = "VAR( monthly.kdj.k )")
 abline(h = 0, col = "red")
 
@@ -407,7 +410,7 @@ abline(h = 0, col = "red")
 
 ### 3.3 Relationship Between Residuals And Fitted Value
 
-```{r main 3.3.1, fig.height=6, fig.width=10, eval=TRUE}
+```{r main 3.3.1, fig.height=6, fig.width=10,eval=FALSE}
 
 plot(as.numeric(residuals(fit.arima.monthly.kdj.d)) ~ as.numeric(fitted(fit.arima.monthly.kdj.d)),
      main = "Arima( Monthly KDJ.D )")
@@ -423,7 +426,7 @@ abline(h = 0, col = "red")
 
 ```
 
-```{r main 3.3.2, fig.height=6, fig.width=10, eval=TRUE}
+```{r main 3.3.2, fig.height=6, fig.width=10,eval=FALSE}
 plot(as.numeric(residuals(var)[,"monthly.kdj.k"]) ~ as.numeric(fitted(var)[,"monthly.kdj.k"]),
      main = "VAR( Monthly KDJ.K )")
 abline(h = 0, col = "red")
@@ -433,7 +436,7 @@ abline(h = 0, col = "red")
 
 ### 3.4 Normality of Residuals
 
-```{r 3.4.1, fig.height=6, fig.width=10, eval=TRUE}
+```{r 3.4.1, fig.height=6, fig.width=10,eval=FALSE}
 
 qqnorm(residuals(fit.arima.monthly.kdj.d), main = "Arima( Monthly KDJ.D )")
 qqline(residuals(fit.arima.monthly.kdj.d))
@@ -446,7 +449,7 @@ qqline(residuals(fit.arima.monthly.return))
 
 ```
 
-```{r 3.4.2, fig.height=6, fig.width=10, eval=TRUE}
+```{r 3.4.2, fig.height=6, fig.width=10,eval=FALSE}
 qqnorm(residuals(var)[,"monthly.kdj.k"], main = "VAR( Monthly KDJ.K )")
 qqline(residuals(var)[,"monthly.kdj.k"])
 
@@ -456,7 +459,7 @@ qqline(residuals(var)[,"monthly.kdj.k"])
 ### 3.5 ARCH Effect Test
 
 
-```{r 3.5.1, eval=TRUE}
+```{r 3.5.1,eval=FALSE}
 
 Box.test((residuals(fit.arima.monthly.kdj.d))^2, lag=10, fitdf=sum(fit.arima.monthly.kdj.d$arma[c(1,2)]), type = "Lj")
 ArchTest(residuals(fit.arima.monthly.kdj.d))
@@ -470,7 +473,7 @@ ArchTest(residuals(fit.arima.monthly.return))
 
 ```
 
-```{r 3.5.2, eval=TRUE}
+```{r 3.5.2,eval=FALSE}
 ArchTest(residuals(var)[,"monthly.kdj.k"])
 ```
 
@@ -479,7 +482,7 @@ ArchTest(residuals(var)[,"monthly.kdj.k"])
 
 #### 3.6.1  BDS Test
 
-```{r Monthly Verification 3.6.1, eval=TRUE}
+```{r Monthly Verification 3.6.1,eval=FALSE}
 # iid test
 
 bdsTest(residuals(fit.arima.monthly.kdj.d), m = 3)
@@ -490,7 +493,7 @@ bdsTest(residuals(fit.arima.monthly.return), m = 3)
 
 #### 3.6.2  Runs Test
 
-```{r Monthly Verification 3.6.2, eval=TRUE}
+```{r Monthly Verification 3.6.2,eval=FALSE}
 # random process test
 
 runsTest(residuals(fit.arima.monthly.kdj.d))
@@ -499,7 +502,7 @@ runsTest(residuals(fit.arima.monthly.return))
 ```
 
 #### 3.6.3  Teraesvirta Neural Network Test
-```{r Monthly Verification 3.6.3, eval=TRUE}
+```{r Monthly Verification 3.6.3,eval=FALSE}
 # mean linearity test
 
 tnnTest(monthly.kdj.d)
@@ -509,7 +512,7 @@ tnnTest(monthly.compound.return)
 ```
 
 #### 3.6.4  White Neural Network Test
-```{r Monthly Verification 3.6.4, eval=TRUE}
+```{r Monthly Verification 3.6.4,eval=FALSE}
 # mean linearity test
 
 wnnTest(monthly.kdj.d)
@@ -521,7 +524,7 @@ wnnTest(monthly.compound.return)
 
 ## 4. Verification for Weekly Kdj Models 
 
-```{r weekly Verification--Model, cache=FALSE, eval=TRUE}
+```{r weekly Verification--Model, cache=FALSE,eval=FALSE}
 
 weekly.kdj.d.data <- window(weekly.kdj.d, start = length(weekly.kdj.d) - 400)
 weekly.kdj.k.data <- window(weekly.kdj.k, start = length(weekly.kdj.k) - 400)
@@ -547,7 +550,7 @@ fit.arima.weekly.kdj.k <- auto.arima(weekly.kdj.k.data,
 ### 4.1 White Noise Test
 
 
-```{r 4.1, cache=FALSE, eval=TRUE}
+```{r 4.1, cache=FALSE,eval=FALSE}
 
 Box.test(residuals(fit.arima.weekly.kdj.d), lag=10, fitdf=sum(fit.arima.weekly.kdj.d$arma[c(1,2)]), type = "Lj")
 
@@ -557,7 +560,7 @@ Box.test(residuals(fit.arima.weekly.kdj.k), lag=10, fitdf=sum(fit.arima.weekly.k
 
 ### 4.2  Relationship Between Residuals And Time
 
-```{r main 4.2, fig.height=6, fig.width=10, cache=FALSE, eval=TRUE}
+```{r main 4.2, fig.height=6, fig.width=10, cache=FALSE,eval=FALSE}
 
 plot(residuals(fit.arima.weekly.kdj.d), axes = TRUE, main = "Arima( Weekly KDJ.D )")
 abline(h = 0, col = "red")
@@ -569,7 +572,7 @@ abline(h = 0, col = "red")
 
 ### 4.3 Relationship Between Residuals And Fitted Value
 
-```{r main 4.3, fig.height=6, fig.width=10, eval=TRUE}
+```{r main 4.3, fig.height=6, fig.width=10,eval=FALSE}
 
 plot(as.numeric(residuals(fit.arima.weekly.kdj.d)) ~ as.numeric(fitted(fit.arima.weekly.kdj.d)),
      main = "Arima( Weekly KDJ.D )")
@@ -584,7 +587,7 @@ abline(h = 0, col = "red")
 
 ### 4.4 Normality of Residuals
 
-```{r main 4.4, fig.height=6, fig.width=10, eval=TRUE}
+```{r main 4.4, fig.height=6, fig.width=10,eval=FALSE}
 
 qqnorm(residuals(fit.arima.weekly.kdj.d), main = "Arima( Weekly KDJ.D )")
 qqline(residuals(fit.arima.weekly.kdj.d))
@@ -597,7 +600,7 @@ qqline(residuals(fit.arima.weekly.kdj.k))
 ### 4.5 ARCH Effect Test
 
 
-```{r main 4.5, eval=TRUE}
+```{r main 4.5,eval=FALSE}
 
 Box.test((residuals(fit.arima.weekly.kdj.d))^2, lag=10, fitdf=sum(fit.arima.weekly.kdj.d$arma[c(1,2)]), type = "Lj")
 ArchTest(residuals(fit.arima.weekly.kdj.d))
@@ -611,7 +614,7 @@ ArchTest(residuals(fit.arima.weekly.kdj.k))
 
 #### 4.6.1 BDS Test
 
-```{r Weekly Verification 4.6.1, eval=TRUE}
+```{r Weekly Verification 4.6.1,eval=FALSE}
 # iid test 
 
 bdsTest(residuals(fit.arima.weekly.kdj.d), m = 3)
@@ -621,7 +624,7 @@ bdsTest(residuals(fit.arima.weekly.kdj.k), m = 3)
 
 #### 4.6.2 Runs Test
 
-```{r Weekly Verification 4.6.2, eval=TRUE}
+```{r Weekly Verification 4.6.2,eval=FALSE}
 # random process test
 
 runsTest(residuals(fit.arima.weekly.kdj.d))
@@ -630,7 +633,7 @@ runsTest(residuals(fit.arima.weekly.kdj.k))
 ```
 
 #### 4.6.3  Teraesvirta Neural Network Test
-```{r Weekly Verification 4.6.3, eval=TRUE}
+```{r Weekly Verification 4.6.3,eval=FALSE}
 # mean linearity test
 
 tnnTest(weekly.kdj.d.data)
@@ -639,7 +642,7 @@ tnnTest(weekly.kdj.k.data)
 ```
 
 #### 4.6.4  White Neural Network Test
-```{r Weekly Verification 4.6.4, eval=TRUE}
+```{r Weekly Verification 4.6.4,eval=FALSE}
 # mean linearity test
 
 wnnTest(weekly.kdj.d.data)
@@ -651,7 +654,7 @@ wnnTest(weekly.kdj.k.data)
 
 ## 5. Verification for Weekly Compound Return Model 
 
-```{r 5.1, cache=FALSE, eval=TRUE}
+```{r 5.1, cache=FALSE,eval=FALSE}
 
 
 
@@ -660,7 +663,7 @@ show(myfilter.aparch.std.52.ver1)
 ```
 
 
-```{r appendix 5.2, fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+```{r appendix 5.2, fig.height=8, fig.width=10, echo = TRUE, cache=FALSE,eval=FALSE}
 plot(myfilter.aparch.std.52.ver1, which = 1)
 ```
 
@@ -668,24 +671,24 @@ plot(myfilter.aparch.std.52.ver1, which = 1)
 # plot(myfilter.aparch.std.52.ver1, which = 2)
 ```
 
-```{r appendix 5.4, fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+```{r appendix 5.4, fig.height=8, fig.width=10, echo = TRUE, cache=FALSE,eval=FALSE}
 plot(myfilter.aparch.std.52.ver1, which = 3)
 ```
 
 
-```{r appendix 5.5, fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+```{r appendix 5.5, fig.height=8, fig.width=10, echo = TRUE, cache=FALSE,eval=FALSE}
 plot(myfilter.aparch.std.52.ver1, which = 9)
 ```
 
-```{r appendix 5.6, fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+```{r appendix 5.6, fig.height=8, fig.width=10, echo = TRUE, cache=FALSE,eval=FALSE}
 plot(myfilter.aparch.std.52.ver1, which = 10)
 ```
 
-```{r appendix 5.7, fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+```{r appendix 5.7, fig.height=8, fig.width=10, echo = TRUE, cache=FALSE,eval=FALSE}
 plot(myfilter.aparch.std.52.ver1, which = 11)
 ```
 
-```{r appendix 5.8, fig.height=8, fig.width=10, echo = TRUE, cache=FALSE, eval=TRUE}
+```{r appendix 5.8, fig.height=8, fig.width=10, echo = TRUE, cache=FALSE,eval=FALSE}
 plot(myfilter.aparch.std.52.ver1, which = 12)
 ```
 
@@ -693,7 +696,7 @@ plot(myfilter.aparch.std.52.ver1, which = 12)
 
 #### 5.1.1 BDS Test
 
-```{r Weekly Verification 5.1.1, eval=TRUE}
+```{r Weekly Verification 5.1.1,eval=FALSE}
 # iid test
 
 bdsTest(as.ts(residuals(myfilter.aparch.std.52.ver1, standard = TRUE)), m = 3)
@@ -702,7 +705,7 @@ bdsTest(as.ts(residuals(myfilter.aparch.std.52.ver1, standard = TRUE)), m = 3)
 
 #### 5.1.2 Runs Test
 
-```{r Weekly Verification 5.1.2, eval=TRUE}
+```{r Weekly Verification 5.1.2,eval=FALSE}
 # random process test
 
 runsTest(as.ts(residuals(myfilter.aparch.std.52.ver1, standard = TRUE)))
@@ -711,7 +714,7 @@ runsTest(as.ts(residuals(myfilter.aparch.std.52.ver1, standard = TRUE)))
 
 
 #### 5.1.3  Teraesvirta Neural Network Test
-```{r Monthly Verification 5.1.3, eval=TRUE}
+```{r Monthly Verification 5.1.3,eval=FALSE}
 # mean linearity test
 
 tnnTest(weekly.compound.return)
@@ -719,7 +722,7 @@ tnnTest(weekly.compound.return)
 ```
 
 #### 5.1.4  White Neural Network Test
-```{r Monthly Verification 5.1.4, eval=TRUE}
+```{r Monthly Verification 5.1.4,eval=FALSE}
 # mean linearity test
 
 wnnTest(weekly.compound.return)
