@@ -43,3 +43,6 @@ DrawMonthlyKDJDForecastPlot(monthly.close.price,
                             arg.xlim.offset = 80,
                             arg.date = monthly.original.data[, 1])
 
+dev.copy(png, file = "d://MyR//stock//PrepareDataAndDrawMonthlyKDJDPlot.png", units= "px", width=1000, height=800)
+
+dev.off()

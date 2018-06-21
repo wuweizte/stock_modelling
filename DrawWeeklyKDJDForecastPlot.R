@@ -103,9 +103,9 @@ DrawWeeklyKDJDForecastPlot <- function(arg.close.price,
                lwd = 2,
                ncol = 2,
                legend = c("Actual Weekly KDJ.D",
-                          paste0("Forecast Weekly KDJ.D"),
+                          paste0("Forecast of Weekly KDJ.D"),
                           "Actual Weekly KDJ.K",
-                          paste0("Forecast Weekly KDJ.K")),
+                          paste0("Forecast of Weekly KDJ.K")),
                bty = "n")        
         
         box()

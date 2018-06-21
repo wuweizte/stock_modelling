@@ -96,9 +96,9 @@ DrawMonthlyKDJDForecastPlot <- function(arg.close.price,
                lwd = 2,
                ncol = 2,
                legend = c("Actual Monthly KDJ.D",
-                          paste0("Forecast Monthly KDJ.D"),
+                          paste0("Forecast of Monthly KDJ.D"),
                           "Actual Monthly KDJ.K",
-                          paste0("Forecast Monthly KDJ.K")),
+                          paste0("Forecast of Monthly KDJ.K")),
                bty = "n")        
         
         box()

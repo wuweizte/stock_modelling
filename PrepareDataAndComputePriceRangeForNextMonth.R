@@ -80,13 +80,13 @@ d <- data.frame(monthly.price.2.upper.level = round(monthly.price.2.upper.level,
                 possibility.ascend.next.month = 
                         paste0(round(possibility.ascend.next.month * 100,digits = 1),"%"))
 
-colnames(d)[1] <- "金价的 (mean + 2*sd) 置信区间上限"
-colnames(d)[2] <- "金价的 (mean + sd) 置信区间上限"
-colnames(d)[3] <- "金价的上月收盘价"
-colnames(d)[4] <- "金价的 (mean - sd) 置信区间下限"
-colnames(d)[5] <- "金价的 (mean - 2*sd) 置信区间下限"
-colnames(d)[6] <- "本月收益率均值预测"
-colnames(d)[7] <- "本月收益率波动标准差预测"
+colnames(d)[1] <- "本月收益率的 (mean + 2*sd) 置信区间上限对应金价"
+colnames(d)[2] <- "本月收益率的 (mean + sd) 置信区间上限对应金价"
+colnames(d)[3] <- "上月收盘价"
+colnames(d)[4] <- "本月收益率的 (mean - sd) 置信区间下限对应金价"
+colnames(d)[5] <- "本月收益率的 (mean - 2*sd) 置信区间下限对应金价"
+colnames(d)[6] <- "本月收益率mean预测"
+colnames(d)[7] <- "本月收益率sd预测"
 colnames(d)[8] <- "本月下跌概率"
 colnames(d)[9] <- "本月上涨概率"
 

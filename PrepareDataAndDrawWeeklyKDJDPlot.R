@@ -35,3 +35,7 @@ DrawWeeklyKDJDForecastPlot(weekly.close.price,
                            arg.xlim.offset = 80,
                            arg.regression.offset = 400,
                            arg.date = weekly.original.data[, 1])
+
+dev.copy(png, file = "d://MyR//stock//PrepareDataAndDrawWeeklyKDJDPlot.png", units= "px", width=1000, height=800)
+
+dev.off()
